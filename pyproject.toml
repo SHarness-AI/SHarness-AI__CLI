@@ -1,0 +1,46 @@
+[tool.poetry]
+name        = "sharness-ai"
+version     = "v0.0.0"
+description = "sharness — the SHarness-AI command line tool."
+readme      = "README.md"
+license     = "Apache-2.0"
+authors     = ["The Cyber Boardroom"]
+keywords    = ["sharness", "sharness-ai", "cli", "ai-agents"]
+repository  = "https://github.com/SHarness-AI/SHarness-AI__CLI"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: Apache Software License",
+]
+packages = [{ include = "sharness_ai" }]
+
+[tool.poetry.urls]
+"Issues" = "https://github.com/SHarness-AI/SHarness-AI__CLI/issues"
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+
+[tool.poetry.group.dev.dependencies]
+pytest     = ">=8.0"
+pytest-cov = ">=5.0"
+
+[tool.poetry.scripts]
+sharness-ai = "sharness_ai.cli:main"
+sharness    = "sharness_ai.cli:main"
+
+[build-system]
+requires      = ["poetry-core>=1.9.1"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths        = ["tests"]
+addopts          = "-v --tb=short"
+python_files     = "test_*.py"
+python_classes   = "Test_*"
+python_functions = "test_*"
+
+[tool.coverage.run]
+source = ["sharness_ai"]
+omit   = ["tests/*"]

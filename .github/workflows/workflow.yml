@@ -1,0 +1,80 @@
+name: CI Pipeline - MAIN
+
+# One workflow on purpose: PyPI's Trusted Publisher for `sharness-ai` is bound to this
+# repository and to this exact filename (workflow.yml), so the publish job must live here
+# (not in a reusable workflow it calls). Renaming this file breaks publishing until the
+# PyPI publisher config is updated to match.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false                  # never interrupt a half-done tag/publish
+
+env:
+  PACKAGE_NAME: 'sharness_ai'                # read by git__increment-tag (writes ${PACKAGE_NAME}/version)
+  GIT__BRANCH : 'main'
+  RELEASE_TYPE: 'major'                      # main releases bump the middle number: v0.N.0 -> v0.N+1.0
+
+jobs:
+  run-tests:
+    name: "Run Unit Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e . pytest pytest-cov
+      - run: python -m pytest tests/unit --cov=sharness_ai --cov-report=term-missing
+
+  increment-tag:
+    name: "Increment Tag"
+    runs-on: ubuntu-latest
+    needs: [run-tests]
+    permissions:
+      contents: write                        # pushes the version-bump commit and the tag
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4  # zizmor: ignore[artipacked] - pushes the bootstrap tag
+        with:
+          fetch-depth: 0
+
+      # git__increment-tag derives the next version from the latest tag and fails when the
+      # repository has none, so the very first release seeds v0.0.0 (-> first release v0.1.0).
+      - name: Bootstrap first tag
+        shell: bash
+        run: |
+          if [ -z "$(git ls-remote --tags origin)" ]; then
+            git tag v0.0.0
+            git push origin v0.0.0
+          fi
+
+      - name: Increment Tag
+        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/git__increment-tag@c2af482d73aaad222f7e6b091d35ab1e5c116f3b # dev
+        with:
+          release_type: ${{ env.RELEASE_TYPE }}
+
+  publish-to-pypi:
+    name: "Publish to: PYPI"
+    runs-on: ubuntu-latest
+    needs: [increment-tag]
+    permissions:
+      contents: read
+      id-token: write                        # PyPI Trusted Publishing (OIDC)
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4  # zizmor: ignore[artipacked] - git__update_branch fetches the bump commit
+      - name: Git Update Current Branch       # picks up the version-bump commit increment-tag pushed
+        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/git__update_branch@c2af482d73aaad222f7e6b091d35ab1e5c116f3b # dev
+        with:
+          branch: ${{ env.GIT__BRANCH }}
+      - name: publish-to-pypi
+        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/pypi__publish@c2af482d73aaad222f7e6b091d35ab1e5c116f3b # dev
