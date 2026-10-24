@@ -1,0 +1,98 @@
+# Experiments
+
+The memo of 24 October 2026 asks for SHarness to start with *very simple examples, each
+component done in isolation, as slim as possible, then harden, then test*. This folder is the
+ladder: numbered experiments, each small enough to read in one sitting, each saying where it
+runs and what it does and does not show. The map, with the browser mockups and the storyboards,
+is on [sharness.ai/experiments](https://sharness.ai/experiments/index.html).
+
+Status words, as on the site: **runnable** means the code is in this repository and its tests
+pass; **measured** means run in a named environment on a named date; **planned** means described
+only. No experiment is a SHarness component.
+
+| # | Experiment | Runs where | Status |
+|---|---|---|---|
+| E01 | `sharness-ai probe`: the grant, what a process here can do before any policy | any OS (Linux for the kernel facts) | runnable |
+| E02 | `sharness-ai policy hash`: canonical JSON → `sha256:…`, the one value the person supplies; the same hash in the [browser mockup](https://sharness.ai/mockups/policy-hash.html) | any OS, and the browser | runnable |
+| E03 | `sharness-ai run --policy p.json -- cmd`: one command under a policy (Landlock files and TCP ports, no network) | Linux 5.13+ (Landlock ABI 1; TCP rules ABI 4) | runnable |
+| E04 | `sharness-ai hello`: the memo's acceptance test for one child process: read allowed, write refused, network refused, wrong hash refused | Linux; a Claude Code session via the [skill](../.claude/skills/sharness-hello/SKILL.md) | runnable, measured 24 Oct 2026 |
+| E05 | session CA + role certificates + the edge matrix over mutual TLS (what the design measured by hand) as a repeatable script | any OS with `cryptography` | planned |
+| E06 | the process-tree proof of concept: a mini orchestrator that cannot exec a shell, and a bash server outside its domain | Linux, root, following the [safety rules](https://sharness.ai/process-tree/index.html#4-safety-rules-for-testing-inside-a-live-agent-session) | planned |
+| E07 | `sharness.llm` as a Messages API pass-through with a secret filter on tool results, pointed at by `ANTHROPIC_BASE_URL` | any OS | planned |
+| E08 | `sharness.kms` v0: make an identity in-process, open a sealed `m1`, re-seal derived keys to a one-time key, never print a clear key | any OS with `cryptography` | planned |
+
+## E01 probe
+
+```
+$ sharness-ai probe
+sharness-ai probe   the grant: what a process here can do before any policy
+identity    uid 0 (root) · capabilities all (CapEff 000001fffeffffff, ...) · NoNewPrivs 0 · Seccomp 0
+kernel      linux 6.18.44 · Landlock ABI 7 · memfd_secret yes · cgroups hybrid (v1 + unified)
+...
+reading     this process is root with every capability and no seccomp: the grant is everything.
+```
+
+Read-only. Prints the *names* of proxy variables, never their values. `--json` for machines.
+The reading line is the ABP delta in one sentence: grant minus mandate, before any policy.
+
+## E02 policy hash
+
+A v0 Process Behaviour Policy is a small JSON object ([policies/](policies/)). Its hash is
+SHA-256 over canonical JSON: sorted keys, no whitespace, UTF-8, integers only. Floats are
+refused rather than canonicalised, so Python and the browser produce identical bytes:
+
+```
+$ sharness-ai policy hash experiments/policies/deny-all-example.json
+sha256:ab1d3e4e779313274f7a1d3ef3e46f6eacef038d8cfaa6198151a45cd82dcc76
+```
+
+Paste the same file into [the browser mockup](https://sharness.ai/mockups/policy-hash.html)
+and the hash must be the same. That is the whole experiment: two implementations, one hash,
+so a person can supply it from outside the agent and a launcher can check it.
+
+## E03 run
+
+```
+$ sharness-ai run --policy experiments/policies/deny-all-example.json -- /bin/sh -c 'touch /x'
+touch: cannot touch '/x': Permission denied
+$ sharness-ai run --policy experiments/policies/allow-https-example.json -- python3 -I -c \
+    "import socket; socket.create_connection(('1.1.1.1', 443))"        # allowed: port 443
+$ sharness-ai run --policy experiments/policies/allow-https-example.json -- python3 -I -c \
+    "import socket; socket.create_connection(('1.1.1.1', 80))"         # PermissionError
+```
+
+The child gets `SHARNESS_AI_POLICY_HASH` and `SHARNESS_AI_POLICY_ID` in its environment, so a
+harnessed app can say which policy it ran under. `--expect-hash sha256:…` refuses to run
+anything unless the file hashes to that value: the launcher's first check, in one flag.
+
+What it enforces, and with what: files and exec by Landlock path rules; TCP by Landlock port
+rules (ABI 4+); `network: "none"` additionally tries an empty network namespace (root, or an
+unprivileged user namespace where the kernel allows one). Landlock does not see UDP, so without
+the namespace DNS still resolves. seccomp, uids, cgroups and mutual TLS are not here yet.
+
+## E04 hello
+
+```
+$ sharness-ai hello
+sharness-ai hello   experiment E04: the memo's acceptance test, for one child process
+policy      hello  sha256:…
+  ✔ read       expected allowed  got allowed
+  ✔ write-tmp  expected refused  got refused (PermissionError: [Errno 13] Permission denied: '/tmp/sharness-ai-hello.tmp')
+  ✔ write-cwd  expected refused  got refused (PermissionError: [Errno 13] Permission denied: 'sharness-ai-hello.tmp')
+  ✔ net        expected refused  got refused (PermissionError: [Errno 13] Permission denied)
+  ✔ hash       expected refused  got refused
+result      5/5 held
+caveat      applied by this process to its own children: a Boundary for them, a Setting for whoever ran this ...
+```
+
+Exit 0 when every expectation held. `--json` for publishing the result on the Evidence page.
+The caveat is part of the result and is why it says *for one child process*: the memo's test
+is passed for the agent itself only when a launcher above the agent applies the policy.
+
+## Measured so far
+
+| Date | Environment | Result |
+|---|---|---|
+| 24 Oct 2026 | one Claude Code cloud session (Ubuntu 24.04, Linux 6.18, Landlock ABI 7, uid 0, Python 3.13) | E04: 5/5 held; E03: port 443 allowed and port 80 refused under `allow-https-example`; whole `hello` run 0.6 s |
+
+Published with method on [sharness.ai/evidence](https://sharness.ai/evidence/index.html).
