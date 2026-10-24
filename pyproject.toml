@@ -1,6 +1,6 @@
 [tool.poetry]
 name        = "sharness-ai"
-version     = "v0.0.0"
+version     = "v0.1.0"
 description = "sharness — the SHarness-AI command line tool."
 readme      = "README.md"
 license     = "Apache-2.0"

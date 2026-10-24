@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/sharness-ai)](https://pypi.org/project/sharness-ai/)
 [![Python](https://img.shields.io/pypi/pyversions/sharness-ai)](https://pypi.org/project/sharness-ai/)
-![Current Release](https://img.shields.io/badge/release-v0.0.0-blue)
+![Current Release](https://img.shields.io/badge/release-v0.1.0-blue)
 
 ## Install
 
