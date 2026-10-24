@@ -27,4 +27,4 @@ class Test_CLI:
 
     def test_no_args_prints_help(self, capsys):
         assert main([]) == 0
-        assert 'usage: sharness' in capsys.readouterr().out
+        assert 'usage: sharness-ai' in capsys.readouterr().out

@@ -5,7 +5,7 @@ from sharness_ai._version import VERSION
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog='sharness', description='sharness — the SHarness-AI command line tool')
+    parser = argparse.ArgumentParser(prog='sharness-ai', description='sharness-ai: the SHarness command line tool (https://sharness.ai)')
     parser.add_argument('--version', action='version', version=f'sharness-ai {VERSION}')
     return parser
 
