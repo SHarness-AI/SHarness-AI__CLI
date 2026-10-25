@@ -7,7 +7,7 @@ experiments from the design, small enough to read in one sitting (experiments/RE
     policy hash FILE           E02  the one value the person supplies: canonical JSON → sha256
     policy check FILE               the shape of a v0 policy
     policy translate FILE --to T    E10  the same policy as bwrap, docker, claude-code, kubernetes; and the gap
-    run --policy FILE -- CMD   E03  one command under a policy: Landlock + no network
+    run --policy FILE -- CMD   E03  one command under a policy: Landlock, caps, no network
     hello                      E04  the memo's acceptance test, for one child process
 """
 import argparse
@@ -45,6 +45,9 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--policy", required=True, help="the policy file (JSON)")
     r.add_argument("--expect-hash", help="refuse unless the policy hashes to this (sha256:…)")
     r.add_argument("--verbose", action="store_true")
+    r.add_argument("--best-effort", action="store_true",
+                   help="run even when a row of the policy cannot be enforced here (it is said on stderr); "
+                        "without this flag such a policy is refused and nothing runs")
     r.add_argument("argv", nargs=argparse.REMAINDER, help="-- the command and its arguments")
 
     h = sub.add_parser("hello", help="E04: the memo's acceptance test, for one child process")
@@ -72,7 +75,7 @@ def main(argv=None) -> int:
         print(json.dumps(p, indent=1) if args.json else render(p))
         return 0
     if args.cmd == "policy":
-        from sharness_ai.policy import PolicyError, check, load, policy_hash, summary
+        from sharness_ai.policy import PolicyError, advice, check, load, policy_hash, summary
         if args.policy_cmd is None:
             parser.parse_args(["policy", "--help"])
             return 0
@@ -97,7 +100,7 @@ def main(argv=None) -> int:
                     print(f"#   - {n}")
                 return 0
             problems = check(policy)
-        except PolicyError as e:
+        except (PolicyError, OSError) as e:
             print(f"sharness-ai policy: {e}", file=sys.stderr)
             return 2
         if problems:
@@ -106,6 +109,8 @@ def main(argv=None) -> int:
                 print(f"  ✗ {x}")
             return 1
         print(f"{args.file}: well-formed v0 policy, id {policy['id']}: {summary(policy)}; {policy_hash(policy)}")
+        for x in advice(policy):
+            print(f"  advice: {x}")
         return 0
     if args.cmd == "run":
         from sharness_ai.policy import PolicyError, load
@@ -116,7 +121,7 @@ def main(argv=None) -> int:
         except (PolicyError, OSError) as e:
             print(f"sharness-ai run: {e}", file=sys.stderr)
             return 125
-        return run(policy, cmd, expect_hash=args.expect_hash, verbose=args.verbose)
+        return run(policy, cmd, expect_hash=args.expect_hash, verbose=args.verbose, best_effort=args.best_effort)
     if args.cmd == "hello":
         from sharness_ai.hello import hello
         return hello(as_json=args.json)

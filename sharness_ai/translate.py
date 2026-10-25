@@ -49,6 +49,8 @@ def to_bwrap(policy, cmd):
         notes.append(f"network.connect_tcp_ports {ports}: not enforced; bwrap shares or unshares the whole network, it has no port allowlist")
     if files.get("exec"):
         notes.append("files.exec: not distinct from files.read; a read-only bind is also executable in bwrap (use noexec mounts or Landlock inside)")
+    if files.get("write"):
+        notes.append("files.write: a writable bind is also executable in bwrap; sharness-ai run never grants execute on a writable path")
     if mem:
         notes.append(f"process.max_memory_mb {mem}: not enforced by bwrap; prefix with `prlimit --as={mem << 20}` or run under a cgroup")
     if pids is not None:
@@ -74,10 +76,13 @@ def to_docker(policy, cmd, image="python:3.12-alpine"):
         parts += ["-v", f"{p}:{p}"]
     parts += [image] + list(cmd)
     line = " ".join(shlex.quote(x) for x in parts)
-    notes = ["files.read of system paths (/usr, /lib, /bin, /sbin, /etc): taken from the image, not bound from the host",
+    notes = [f"image {image} is named by tag; pin it by digest (image@sha256:…) so the policy binds to one build",
+             "files.read of system paths (/usr, /lib, /bin, /sbin, /etc): taken from the image, not bound from the host",
              "files.exec: not distinct from read; everything readable in the image is executable (Docker has no exec allowlist)"]
     if kind == "ports":
         notes.append(f"network.connect_tcp_ports {ports}: not enforced by `docker run`; needs an egress rule (iptables in the container's namespace, or a proxy)")
+    if any(":" in p for p in files.get("read", []) + files.get("write", []) + files.get("exec", [])):
+        notes.append("a path contains ':', which `-v host:container` cannot express; use --mount type=bind,source=…,target=…")
     notes.append("the policy hash: Docker does not check one; the launcher's --expect-hash has no equivalent")
     return line, notes
 
@@ -109,7 +114,7 @@ def to_kubernetes(policy, cmd, image="python:3.12-alpine", name="harnessed"):
     vols, mounts = [], []
     for i, p in enumerate(sorted(set(files.get("write", [])))):
         vols.append(f"      - name: w{i}\n        emptyDir: {{}}")
-        mounts.append(f"          - name: w{i}\n            mountPath: {p}")
+        mounts.append(f"          - name: w{i}\n            mountPath: {json.dumps(p)}")   # quoted: a path is data, never YAML
     limits = f"\n          limits:\n            memory: {mem}Mi" if mem else ""
     egress = "  egress: []" if kind == "none" else "  egress:\n    - ports:\n" + "".join(f"        - protocol: TCP\n          port: {p}\n" for p in ports)
     yaml = f"""apiVersion: v1
@@ -146,7 +151,8 @@ spec:
   policyTypes: [Egress]
 {egress}
 """
-    notes = ["files.read: the image's filesystem, read-only; host paths are not bound (a policy's read list becomes the image's contents)",
+    notes = [f"image {image} is named by tag; pin it by digest (image@sha256:…) so the policy binds to one build",
+             "files.read: the image's filesystem, read-only; host paths are not bound (a policy's read list becomes the image's contents)",
              "files.exec: no execute allowlist in a securityContext",
              "files.write: each path becomes an emptyDir volume (not the host's folder)",
              "process.max_pids: no per-pod pids limit in the Pod spec (the kubelet's podPidsLimit is cluster-wide)",

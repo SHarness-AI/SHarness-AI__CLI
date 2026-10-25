@@ -96,12 +96,12 @@ experiments and storyboards is [sharness.ai/code/experiments](https://sharness.a
 |---|---|---|
 | `sharness-ai probe` | E01 | the **grant**: what a process here can do before any policy (uid, capabilities, Landlock ABI, `memfd_secret`, namespaces, tools, whether egress is proxied). Read-only; prints the names of proxy variables, never values |
 | `sharness-ai policy hash FILE` | E02 | the one value the person supplies: canonical JSON → `sha256:…`. The [browser mockup](https://sharness.ai/explain/mockups/policy-hash.html) produces the same hash from the same file |
-| `sharness-ai policy check FILE` | E02 | the shape of a v0 Process Behaviour Policy |
+| `sharness-ai policy check FILE` | E02 | the shape of a v0 Process Behaviour Policy (paths as written are what the kernel binds: normalised, no `..`, no control characters; no duplicate keys; integers JavaScript keeps exact), then advice on what a well-formed policy still grants more of than its page suggests |
 | `sharness-ai policy translate FILE --to bwrap\|docker\|claude-code\|kubernetes\|landlock [-- CMD…]` | E10 | the same policy in another enforcer's form (a bubblewrap or `docker run` command line, a Claude Code sandbox `settings.json` fragment, a Kubernetes Pod and NetworkPolicy), followed by the list of what that target does **not** enforce: the [enforceability matrix](https://sharness.ai/landscape/enforceability/index.html), row by row |
-| `sharness-ai run --policy FILE [--expect-hash sha256:…] -- CMD…` | E03 | one command under a policy: Landlock file and exec rules, TCP port rules, no network, a memory cap and a process-count cap (`RLIMIT_AS`, `RLIMIT_NPROC`, and a cgroup where one can be made); refuses to run anything if the hash does not match |
-| [the playground](https://sharness.ai/code/playground/index.html), or `experiments/browser/playground.html` | E09 | type `sharness-ai` into Pyodide (`pip install`, then hash, check, translate; `run` and `hello` refuse with no kernel) and into a shell on the Linux guest (everything, enforced); one policy hashed three ways; the guest on the page's network, with an interceptor that shows every packet and vetoes hosts outside an allowlist |
+| `sharness-ai run --policy FILE [--expect-hash sha256:…] [--best-effort] -- CMD…` | E03 | one command under a policy: Landlock file and exec rules (a writable path is never executable), TCP port rules, no network, a memory cap and a process-count cap (`RLIMIT_AS`, `RLIMIT_NPROC`, and a cgroup where one can be made). Refuses to run anything if the hash does not match, if a writable path resolves elsewhere through a symlink, or if a row of the policy cannot be enforced on this kernel (`--best-effort` runs anyway and says what was not enforced). Always says what Landlock never covers |
+| [the playground](https://sharness.ai/code/playground/index.html), or `experiments/browser/playground.html` | E09 | type `sharness-ai` into Pyodide (`pip install`, then hash, check, translate; `run` and `hello` refuse with no kernel) and into a shell on the Linux guest (everything, enforced); one policy hashed three ways |
 | `experiments/browser/`: `npm run node`, `npm run browser`, `sudo npm run native` | E09 | the same `hello` and `run` under a second kernel: Alpine x86 with Landlock booted by v86 in Node and in a browser tab, and the same binaries through chroot on the host kernel |
-| `sharness-ai hello` | E04 | the memo's acceptance test for one child process: read allowed, writes refused, network refused, a 400 MiB allocation under a 128 MiB cap refused, wrong hash refused. Exit 0 when every expectation held |
+| `sharness-ai hello` | E04 | the memo's acceptance test for one child process: read allowed, writes refused, network refused, a 400 MiB allocation under a 128 MiB cap refused, wrong hash refused. A refusal counts only when it came from the policy; an ambiguous one is checked against a control run without the policy and reported *inconclusive* if the environment refused it too. Exit 0 when nothing failed |
 
 ```
 $ sharness-ai hello
@@ -114,6 +114,7 @@ policy      hello  sha256:…
   ✔ memory     expected refused  got refused (MemoryError)
   ✔ hash       expected refused  got refused
 result      6/6 held
+not covered Unix-domain sockets by path (no Landlock rule exists); the environment variables this process has (inherited by the child); UDP, unless the empty network namespace applied
 caveat      applied by this process to its own children: a Boundary for them, a Setting for whoever ran this ...
 ```
 
@@ -123,7 +124,14 @@ Linux 6.7+); `network: "none"` also tries an empty network namespace. Landlock d
 so without the namespace DNS still resolves. `process.max_memory_mb` and `max_pids` set `RLIMIT_AS`
 and `RLIMIT_NPROC` on the child and, where `/sys/fs/cgroup` is writable, a memory and pids cgroup
 (measured 25 Oct 2026: a 400 MiB allocation under 128 MiB raises MemoryError; the fifth fork under
-`max_pids: 4` fails). Not here yet: seccomp, per-component uids, mutual TLS, the launcher, any component. Standard library only; Python 3.11+.
+`max_pids: 4` fails). `RLIMIT_NPROC` does not bind uid 0, so for root only the pids cgroup counts;
+where none can be made, `max_pids` is refused rather than skipped. A writable path gets every right
+but execute, so a file the child drops cannot run. A writable path that is a symlink to somewhere else
+is refused before anything runs: the policy's page must be what the kernel binds. Every descriptor
+above 2 is closed in the child, because Landlock binds new opens, not inherited ones. **Not covered,
+and said on stderr every run:** Unix-domain sockets by path (Landlock has no rule for them), the
+environment the child inherits (v0 has no row for it), UDP when no network namespace could be made.
+Not here yet: seccomp, per-component uids, mutual TLS, the launcher, any component. Standard library only; Python 3.11+.
 
 **The caveat is part of the result.** A policy a process applies to its own children is a Boundary
 for them and only a Setting for itself (it could have skipped it). Making it a Boundary for the
@@ -133,9 +141,21 @@ agent too needs the launcher above the agent: [who enforces decides](https://sha
 runs E01 and E04 inside the session under the design's safety rules and reports the result in the
 site's status words.
 
+## Security
+
+This is a security product, so the project keeps its own register of what it knows about itself:
+the threat model, every known risk and whether it is fixed or accepted, every review's findings
+with dates, and the hardening guidance are on [sharness.ai/security](https://sharness.ai/security/index.html).
+[SECURITY.md](SECURITY.md) says how to report a vulnerability (GitHub private reporting). Each fix
+is pinned by a test in `tests/unit/test_security.py`; `.github/workflows/security.yml` runs ruff's
+bandit rules, bandit, zizmor, pip-audit, npm audit and an SBOM on every push; `codeql.yml` runs CodeQL.
+Every download the browser bench makes is pinned by sha256 and refused on mismatch. The release
+pipeline runs only GitHub's and pypa's actions, pinned to commits, with build and publish in separate jobs.
+
 ## Releases
 
 Every push to `main` runs `.github/workflows/workflow.yml`: unit tests, then a version bump
 (`v0.N.0` → `v0.N+1.0`, written to `pyproject.toml`, `sharness_ai/version` and the badge above),
-a git tag, and a publish to PyPI via Trusted Publishing (OIDC — no API token is stored).
+a git tag, a build with a pinned `build`, and a publish to PyPI via Trusted Publishing (OIDC — no
+API token is stored) with PEP 740 attestations. A manual run with `dry_run` builds and stops.
 Day-to-day work lands on `dev` (the default branch); merging `dev` into `main` cuts a release.

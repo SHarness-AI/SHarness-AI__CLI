@@ -54,6 +54,12 @@ ACCESS_FILE = FS_EXECUTE | FS_WRITE_FILE | FS_READ_FILE | FS_TRUNCATE | FS_IOCTL
 ACCESS_READ = FS_READ_FILE | FS_READ_DIR
 ACCESS_EXEC = FS_EXECUTE | FS_READ_FILE | FS_READ_DIR
 
+
+def access_write(handled_fs: int) -> int:
+    """Every handled right but execute: a writable path is never also executable, so a file the
+    child drops there cannot run. The policy's exec list is the only source of the execute right."""
+    return handled_fs & ~FS_EXECUTE
+
 _libc = None
 
 
@@ -114,18 +120,29 @@ class Ruleset:
             _err("landlock_create_ruleset")
         self.rules = []
 
-    def add_path(self, path, access) -> bool:
-        """Allow `access` beneath `path`. Returns False (and adds no rule) if the path is absent."""
+    def add_path(self, path, access, bound_to=None):
+        """Allow `access` beneath `path`. Returns None (and adds no rule) if the path is absent,
+        else the path the kernel bound the rule to (read back through /proc/self/fd; `path`
+        itself where /proc is not mounted). Symlinks are followed, as every open does: the rule
+        is on the inode, so the caller sees here when a policy path resolved elsewhere.
+        `bound_to`, when given, must equal that path or the rule is not added: the check and the
+        open are the same file descriptor, so nothing can change in between."""
         try:
             fd = os.open(path, os.O_PATH | os.O_CLOEXEC)
         except FileNotFoundError:
-            return False
+            return None
         try:
+            try:
+                bound = os.readlink(f"/proc/self/fd/{fd}")
+            except OSError:
+                bound = path
+            if bound_to is not None and bound != bound_to:
+                raise OSError(f"{path} is bound to {bound}, not {bound_to}")
             if not stat.S_ISDIR(os.fstat(fd).st_mode):
                 access &= ACCESS_FILE
             access &= self.handled_fs
             if not access:
-                return False
+                return None
             attr = struct.pack("<Qi", access, fd)          # packed: u64 allowed_access, s32 parent_fd
             buf = ctypes.create_string_buffer(attr, len(attr))
             if libc().syscall(ctypes.c_long(SYS_landlock_add_rule), ctypes.c_int(self.fd),
@@ -133,8 +150,8 @@ class Ruleset:
                 _err(f"landlock_add_rule({path})")
         finally:
             os.close(fd)
-        self.rules.append(("path", path, access))
-        return True
+        self.rules.append(("path", bound, access))
+        return bound
 
     def add_port(self, port, access=NET_CONNECT_TCP):
         if not self.handled_net:

@@ -23,7 +23,9 @@ rungs of the SHarness ladder: nothing here is a SHarness component.
 1. Install from PyPI, or from the repository checkout if that is where you are:
    `pip install sharness-ai` (or `pip install -e .`). Check: `sharness-ai --version`.
    If the installed release does not have the `probe` and `hello` commands yet, install from
-   the repository: `pip install git+https://github.com/SHarness-AI/SHarness-AI__CLI@dev`.
+   the repository at a commit you name, never a moving branch:
+   `pip install git+https://github.com/SHarness-AI/SHarness-AI__CLI@<commit>` (the current `dev`
+   head is on https://github.com/SHarness-AI/SHarness-AI__CLI/commits/dev).
 2. `sharness-ai probe` and `sharness-ai probe --json`. This is E01: the grant. It prints the
    names of proxy variables only, never values. Do not add values yourself.
 3. `sharness-ai hello` and `sharness-ai hello --json`. This is E04. Exit 0 means every
@@ -33,6 +35,10 @@ rungs of the SHarness ladder: nothing here is a SHarness component.
    - **Measured, as of <today's date>:** the `hello` result table and the policy hash.
    - **The caveat, verbatim from the output.** A policy applied by this session to its own
      child is a Boundary for the child and only a Setting for the session.
+   - **The `not covered` line, verbatim.** Unix-domain sockets by path, the inherited
+     environment and UDP without the namespace are not enforced by anything here.
+   - Any probe marked `?` is **inconclusive**: the environment refused it too, so the policy was
+     not tested there. Say so; do not count it as held.
    - What was **not** measured: seccomp, uids, cgroups, mutual TLS, the process tree.
 5. If asked to publish: the JSON belongs on the Evidence page of the site with method and
    date (https://sharness.ai/evidence/index.html), not in a chat message alone.

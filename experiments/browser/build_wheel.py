@@ -25,18 +25,21 @@ REPO = HERE.parents[1]
 def version() -> str:
     base = re.search(r'^version\s*=\s*"v?([^"]+)"', (REPO / "pyproject.toml").read_text(), re.M).group(1)
     try:
-        sha = subprocess.run(["git", "-C", str(REPO), "rev-parse", "--short=7", "HEAD"],
+        sha = subprocess.run(["git", "-C", str(REPO), "rev-parse", "--short=7", "HEAD"],  # noqa: S603,S607 - git from PATH, fixed argv
                              capture_output=True, text=True, check=True).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         sha = "local"
     return f"{base}+dev.{sha}"
 
 
-def build(out: Path) -> Path:
-    ver = version()
+def build(out: Path, ver: str = None, src: Path = None) -> Path:
+    """`ver` names the wheel (default: <pyproject version>+dev.<commit>); `src` is the package
+    directory to pack (default: this checkout's sharness_ai)."""
+    ver = ver or version()
+    src = src or REPO / "sharness_ai"
     dist = f"sharness_ai-{ver}.dist-info"
     files = {}
-    for f in sorted((REPO / "sharness_ai").iterdir()):
+    for f in sorted(src.iterdir()):
         if f.is_file() and f.suffix in (".py", "") and f.name != "__pycache__":
             files[f"sharness_ai/{f.name}"] = f.read_bytes()
     files["sharness_ai/version"] = f"v{ver}\n".encode()
@@ -73,7 +76,9 @@ def build(out: Path) -> Path:
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", type=Path, default=HERE / "out" / "www")
-    whl = build(ap.parse_args(argv).out)
+    ap.add_argument("--version", help="name the wheel this version instead of <pyproject>+dev.<commit>")
+    a = ap.parse_args(argv)
+    whl = build(a.out, a.version)
     print(f"{whl}  {whl.stat().st_size} bytes")
 
 

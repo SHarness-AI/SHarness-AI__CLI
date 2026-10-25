@@ -365,8 +365,14 @@ async function hashEverywhere() {
   } else rows.push(["sharness-ai in Linux", "not booted: Boot Linux in the Linux tab"]);
   const got = rows.map(r => r[1]).filter(v => v.startsWith("sha256:"));
   const same = got.length > 1 && got.every(v => v === got[0]);
-  hashes.innerHTML = rows.map(([k, v]) => `<div><b>${k}</b><br><span class="${v.startsWith("sha256:") ? (same || got.length === 1 ? "ok" : "bad") : ""}">${v.replace(/</g, "&lt;")}</span></div>`).join("")
-    + `<div style="margin-top:.4rem">${got.length > 1 ? (same ? `<span class="ok">✔ ${got.length} implementations, one hash</span>` : '<span class="bad">✗ the hashes differ</span>') : "Start more runtimes to compare."}</div>`;
+  hashes.replaceChildren(...rows.map(([k, v]) => {            // text nodes only: output from a runtime is data, never markup
+    const d = document.createElement("div"), b = document.createElement("b"), s = document.createElement("span");
+    b.textContent = k; s.textContent = v;
+    if (v.startsWith("sha256:")) s.className = same || got.length === 1 ? "ok" : "bad";
+    d.append(b, document.createElement("br"), s);
+    return d;
+  }), Object.assign(document.createElement("div"), { style: "margin-top:.4rem", className: got.length > 1 ? (same ? "ok" : "bad") : "",
+    textContent: got.length > 1 ? (same ? `✔ ${got.length} implementations, one hash` : "✗ the hashes differ") : "Start more runtimes to compare." }));
   return rows;
 }
 async function usePolicy() {

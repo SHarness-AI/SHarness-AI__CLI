@@ -6,13 +6,14 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname, resolve, extname } from "node:path";
+import { dirname, resolve, extname, normalize } from "node:path";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WWW = resolve(process.argv[2] || HERE + "/out") + "/www";
 const { chromium } = await import(process.env.PLAYWRIGHT || "playwright");
 const TYPES = { ".html": "text/html", ".mjs": "text/javascript", ".wasm": "application/wasm", ".bin": "application/octet-stream", ".gz": "application/gzip" };
 const server = createServer(async (req, res) => {           // plain static files: no COOP/COEP headers on purpose, to show none are needed
-  const file = WWW + decodeURIComponent(req.url.split("?")[0].replace(/\/$/, "/index.html"));
+  const file = normalize(WWW + decodeURIComponent(req.url.split("?")[0].replace(/\/$/, "/index.html")));
+  if (!file.startsWith(WWW + "/")) { res.writeHead(404); res.end(); return; }   // nothing above out/www, whatever the URL says
   try { const body = await readFile(file); res.writeHead(200, { "content-type": TYPES[extname(file)] || "application/octet-stream" }); res.end(body); }
   catch { res.writeHead(404); res.end(); }
 });

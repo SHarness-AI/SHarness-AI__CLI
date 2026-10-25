@@ -64,15 +64,25 @@ $ sharness-ai run --policy experiments/policies/allow-https-example.json -- pyth
 ```
 
 The child gets `SHARNESS_AI_POLICY_HASH` and `SHARNESS_AI_POLICY_ID` in its environment, so a
-harnessed app can say which policy it ran under. `--expect-hash sha256:…` refuses to run
-anything unless the file hashes to that value: the launcher's first check, in one flag.
+harnessed app can say which policy it ran under (a statement, not a proof: the child cannot verify
+who set them). `--expect-hash sha256:…` refuses to run anything unless the file hashes to that
+value: the launcher's first check, in one flag. Three more refusals, each a finding of the security
+review of 25 Oct 2026: a writable path that resolves elsewhere through a symlink (the page would
+grant less than the kernel), a row the kernel here cannot enforce (`network: "none"` with no
+namespace and no Landlock TCP rules; `max_pids` as root with no pids cgroup, since `RLIMIT_NPROC`
+does not bind uid 0), and a malformed policy. `--best-effort` runs anyway and prints what was not
+enforced. What Landlock never covers is printed every run: Unix-domain sockets by path, the
+inherited environment, UDP without the namespace.
 
 What it enforces, and with what: files and exec by Landlock path rules; TCP by Landlock port
 rules (ABI 4+); `network: "none"` additionally tries an empty network namespace (root, or an
 unprivileged user namespace where the kernel allows one). Landlock does not see UDP, so without
 the namespace DNS still resolves. `process.max_memory_mb` and `process.max_pids`: `RLIMIT_AS` and
 `RLIMIT_NPROC` on the child, plus a memory and pids cgroup (v1 or v2) where `/sys/fs/cgroup` is
-writable; the parent removes the cgroup afterwards. seccomp, uids and mutual TLS are not here yet.
+writable; the parent removes the cgroup afterwards. A writable path never carries the execute
+right, so a file the child drops cannot run; the child closes every descriptor above 2 before the
+policy applies, since Landlock binds new opens and not inherited ones. seccomp, uids and mutual
+TLS are not here yet.
 
 ## E04 hello
 
@@ -87,10 +97,16 @@ policy      hello  sha256:…
   ✔ memory     expected refused  got refused (MemoryError)
   ✔ hash       expected refused  got refused
 result      6/6 held
+not covered Unix-domain sockets by path (no Landlock rule exists); the environment variables this process has (inherited by the child); UDP, unless the empty network namespace applied
 caveat      applied by this process to its own children: a Boundary for them, a Setting for whoever ran this ...
 ```
 
-Exit 0 when every expectation held. `--json` for publishing the result on the Evidence page.
+Exit 0 when nothing failed. A refusal counts as held only when it came from the policy (`EACCES`
+from Landlock, `MemoryError` under the cap). An ambiguous refusal (`ENETUNREACH`, a timeout, a
+read-only filesystem) is checked against a control, the same probe run once without the policy;
+if the control fails too, the line reads *inconclusive*, with a `?`, and is not counted as held.
+The control runs only when needed, so on an ordinary machine `hello` makes no connection of its
+own. `--json` for publishing the result on the Evidence page.
 The caveat is part of the result and is why it says *for one child process*: the memo's test
 is passed for the agent itself only when a launcher above the agent applies the policy.
 
