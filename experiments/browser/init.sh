@@ -40,7 +40,7 @@ cd /work && sharness-ai probe
 echo "--- E04 hello:"
 cd /work && sharness-ai hello
 echo "SHARNESS-HELLO-EXIT $?"
-echo "--- E03 run under P1: port 443 allowed by the policy, port 80 refused (the guest has no network backend, so 443 fails with ENETUNREACH, not EACCES)"
+echo "--- E03 run under P1: port 443 allowed by the policy, port 80 refused by the kernel (EACCES). With the page as the network, 443 is reset by the page, which serves port 80 only (ECONNREFUSED); without one, ENETUNREACH. Neither is EACCES."
 sharness-ai run --policy /work/policies/p1-agent-session.json -- python3 -I -c "import socket,errno
 for port in (443, 80):
     try:
