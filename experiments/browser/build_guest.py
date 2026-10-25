@@ -12,7 +12,8 @@ Steps: fetch the pinned Alpine 3.23 x86 packages (busybox, musl, python3 and wha
 and linux-virt, whose kernel is built with Landlock); unpack them with tarfile; add the
 sharness_ai package from this checkout and the example policies; write /init (init.sh);
 pack a newc cpio, gzipped; copy the kernel, the initramfs, v86 (from node_modules) and the
-BIOS files into www/ next to the page. Re-running only fetches what the cache lacks.
+BIOS files into www/ next to the page, with the playground (playground.html, playground.js),
+the example policies and a dev wheel of the package (build_wheel.py) for Pyodide. Re-running only fetches what the cache lacks.
 """
 import argparse
 import gzip
@@ -170,9 +171,18 @@ def main(argv=None):
         if not (build / "libv86.mjs").exists():
             sys.exit(f"v86 not found at {a.v86}: run `npm ci` in {HERE} first (package.json pins the version)")
         for src in (build / "libv86.mjs", build / "v86.wasm", cache / "seabios.bin", cache / "vgabios.bin",
-                    vmlinuz, initramfs, HERE / "page.html"):
+                    vmlinuz, initramfs, HERE / "page.html", HERE / "playground.html", HERE / "playground.js"):
             shutil.copy(src, www / ("index.html" if src.name == "page.html" else src.name))
-        print(f"  {www}: {sum(f.stat().st_size for f in www.iterdir()) / 1e6:.1f} MB in {len(list(www.iterdir()))} files")
+        (www / "policies").mkdir(exist_ok=True)
+        for pol in sorted((REPO / "experiments" / "policies").glob("*.json")):
+            shutil.copy(pol, www / "policies" / pol.name)
+        for old in www.glob("sharness_ai-*.whl"):
+            old.unlink()
+        sys.path.insert(0, str(HERE))
+        import build_wheel
+        print("  wheel:", build_wheel.build(www).name)
+        files = [f for f in www.rglob("*") if f.is_file()]
+        print(f"  {www}: {sum(f.stat().st_size for f in files) / 1e6:.1f} MB in {len(files)} files")
     print("done:", out)
 
 

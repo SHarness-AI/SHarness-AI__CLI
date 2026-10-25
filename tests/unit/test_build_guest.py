@@ -62,7 +62,8 @@ class Test_cpio:
 
 class Test_guest_pieces:
     def test_files_present(self):
-        for name in ("init.sh", "page.html", "boot_node.mjs", "boot_browser.mjs", "chroot_native.sh", "package.json", "README.md"):
+        for name in ("init.sh", "page.html", "playground.html", "playground.js", "build_wheel.py", "test_playground.mjs",
+                     "boot_node.mjs", "boot_browser.mjs", "chroot_native.sh", "package.json", "README.md"):
             assert (BROWSER / name).exists(), name
 
     def test_init_runs_policies_that_exist(self):
@@ -82,3 +83,40 @@ class Test_guest_pieces:
         import json
         pkg = json.loads((BROWSER / "package.json").read_text())
         assert pkg["dependencies"]["v86"][0].isdigit(), "v86 must be pinned to an exact version"
+
+
+spec_w = importlib.util.spec_from_file_location("build_wheel", BROWSER / "build_wheel.py")
+build_wheel = importlib.util.module_from_spec(spec_w)
+spec_w.loader.exec_module(build_wheel)
+
+
+class Test_wheel:
+    def test_wheel_is_valid_and_says_dev(self, tmp_path):
+        import base64
+        import hashlib
+        import json
+        import zipfile
+        whl = build_wheel.build(tmp_path)
+        ver = build_wheel.version()
+        assert "+dev." in ver and whl.name == f"sharness_ai-{ver}-py3-none-any.whl"
+        z = zipfile.ZipFile(whl)
+        names = z.namelist()
+        assert "sharness_ai/cli.py" in names and "sharness_ai/policy.py" in names
+        record = z.read(f"sharness_ai-{ver}.dist-info/RECORD").decode().splitlines()
+        for row in record:
+            name, digest, size = row.split(",")
+            if digest:
+                data = z.read(name)
+                assert digest == "sha256=" + base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+                assert int(size) == len(data)
+        assert z.read("sharness_ai/version").decode().strip() == "v" + ver
+        manifest = json.loads((tmp_path / "wheel.json").read_text())
+        assert manifest["wheel"] == whl.name and manifest["sha256"] == "sha256:" + hashlib.sha256(whl.read_bytes()).hexdigest()
+
+    def test_playground_lists_policies_that_exist(self):
+        import re
+        js = (BROWSER / "playground.js").read_text()
+        names = re.search(r"const POLICIES = \[(.*?)\];", js, re.S).group(1)
+        for n in re.findall(r'"([\w-]+)"', names):
+            assert (BROWSER.parent / "policies" / f"{n}.json").exists(), n
+        assert "sharness.mode=shell" in js and "sharness.mode=shell" in (BROWSER / "init.sh").read_text()

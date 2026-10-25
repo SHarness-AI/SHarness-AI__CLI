@@ -1,5 +1,6 @@
 #!/bin/busybox sh
-# PID 1 of the E09 guest. Runs E01, E04 and E03 and the example policies, then powers off.
+# PID 1 of the E09 guest. Runs E01, E04 and E03 and the example policies, then powers off;
+# with sharness.mode=shell on the kernel command line, gives a shell on the serial line instead.
 # Every line goes to the serial console; the runners read the SHARNESS-* markers.
 /bin/busybox --install -s
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root
@@ -13,6 +14,16 @@ echo
 echo "SHARNESS-GUEST-UP $(uname -r) $(uname -m)"
 echo "--- landlock in dmesg:"
 dmesg | grep -i landlock
+if grep -q 'sharness.mode=shell' /proc/cmdline; then
+    # The playground: a shell on the serial line instead of the scripted run. The page types into
+    # it; a new shell starts if the old one exits, so PID 1 never returns.
+    cd /work
+    export PS1='sharness:\w# '
+    echo "sharness-ai is installed ($(python3 -I -m sharness_ai --version)); the example policies are in /work/policies"
+    echo "SHARNESS-SHELL-READY"
+    # setsid then opening ttyS0 makes it the shell's controlling terminal, so Ctrl-C reaches the command
+    while true; do setsid sh -c 'exec </dev/ttyS0 >/dev/ttyS0 2>&1; stty cols 160 rows 48; exec /bin/sh -i'; sleep 1; done
+fi
 echo "--- E01 probe:"
 cd /work && sharness-ai probe
 echo "--- E04 hello:"

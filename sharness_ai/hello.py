@@ -83,6 +83,12 @@ def _classify(name, rc, out):
 
 
 def hello(as_json=False) -> int:
+    from sharness_ai.run import EXIT_APPLY, unavailable
+    reason = unavailable()
+    if reason:
+        print(json.dumps({"experiment": "E04 hello", "refused": reason}) if as_json else
+              f"sharness-ai hello   refused: {reason}. Nothing ran.")
+        return EXIT_APPLY
     policy = hello_policy()
     h = policy_hash(policy)
     abi = landlock.abi()

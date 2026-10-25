@@ -18,6 +18,23 @@ guest's 32-bit binaries drive the host's Landlock through the i386 syscall numbe
 Setting for whoever ran it. The write-up, with the options not taken and what a browser can
 never show, is [sharness.ai/code/browser](https://sharness.ai/code/browser/index.html).
 
+## The playground: type `sharness-ai` into either runtime
+
+`out/www/playground.html` (source: [`playground.html`](playground.html) and
+[`playground.js`](playground.js), one ES module, no framework) puts two terminals side by side:
+
+| Tab | What it is | What works there |
+|---|---|---|
+| **Pyodide** | CPython 3.14 compiled to WebAssembly (Pyodide 314.0.7 from jsDelivr); `pip install sharness-ai` installs the dev wheel from the same folder with `micropip` | `policy hash`, `check`, `translate`, `probe` (which says there is no kernel); `run` and `hello` refuse with exit 126: no kernel, no processes, nothing to confine |
+| **Linux** | the guest above booted with `sharness.mode=shell` on the kernel command line, so `/init` gives a shell on the serial line instead of the scripted run | everything, enforced by the guest kernel: `probe`, `hello`, `run` under any policy |
+
+A policy panel hashes the same JSON three ways (the browser's WebCrypto, the CLI in Pyodide, the
+CLI in the guest) and shows whether they agree; "Use it" copies the edited policy into both
+runtimes as `policies/my-policy.json` (into the guest as base64 over the serial line, the only
+way in). [`build_wheel.py`](build_wheel.py) builds the wheel with the standard library and
+names it `<version>+dev.<commit>`, so it can never be mistaken for a PyPI release.
+`node test_playground.mjs` drives both tabs in headless Chromium and checks eleven things.
+
 ## Build
 
 ```
@@ -37,6 +54,7 @@ by version, the cpio has fixed inode numbers and a zero gzip timestamp.
 
 ```
 npm run node                            # boot_node.mjs: v86 in Node, serial console to stdout, exit 0 when hello held
+npm run playground                      # test_playground.mjs: both playground tabs, end to end (needs jsDelivr for Pyodide)
 npm run browser                         # boot_browser.mjs: serves out/www, drives headless Chromium with Playwright
 sudo npm run native                     # chroot_native.sh: the same binaries on the host kernel
 ```
@@ -76,6 +94,11 @@ start `python3` at all, with `Permission denied` from `execve`. Alpine's ELF int
 binary. On the host, a merged `/usr` hides this (`/lib64` is a link into `/usr`). The profiles
 P0 to P4 list `/lib` and `/lib64` as executable for that reason; the two older examples keep
 their paths, and their hashes.
+
+Playground, measured 25 Oct 2026 (the same session, headless Chromium 153, served from
+`out/www`): Pyodide loaded in about 3 s and installed the wheel in under 1 s; the guest
+reached its shell prompt in about 40 s; `hello` held 6 of 6 there, P2 refused a write, and
+the three hashes of P0 were identical; 11 of 11 checks, no page errors, about 85 s in all.
 
 ## Not here
 

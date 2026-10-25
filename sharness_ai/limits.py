@@ -8,7 +8,11 @@ OOM-killed, not throttled. The cgroup needs write access to /sys/fs/cgroup (root
 delegated subtree), so it is applied when it can be and reported either way.
 """
 import os
-import resource
+
+try:
+    import resource
+except ImportError:                 # no resource module: WebAssembly runtimes such as Pyodide
+    resource = None
 
 CG = "/sys/fs/cgroup"
 NAME = "sharness-ai"

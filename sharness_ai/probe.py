@@ -112,6 +112,9 @@ def probe() -> dict:
 def render(p: dict) -> str:
     def yn(v):
         return "yes" if v else "no"
+
+    def known(v, absent="unknown"):
+        return absent if v is None else v
     who = f"uid {p['uid']}" + (" (root)" if p["uid"] == 0 else "")
     caps = ("all" if p["caps_all"] else "some" if p["caps_all"] is not None else "unknown")
     if p["cap_eff"]:
@@ -123,15 +126,21 @@ def render(p: dict) -> str:
     proxies = ", ".join(p["egress_proxy_vars"]) or "none"
     lines = [
         "sharness-ai probe   the grant: what a process here can do before any policy",
-        f"identity    {who} · capabilities {caps} · NoNewPrivs {p['no_new_privs']} · Seccomp {p['seccomp']}",
+        f"identity    {who} · capabilities {caps} · NoNewPrivs {known(p['no_new_privs'])} · Seccomp {known(p['seccomp'])}",
         f"kernel      {p['os']} {p['kernel']} · Landlock ABI {p['landlock_abi'] or 'none'} · "
-        f"memfd_secret {yn(p['memfd_secret'])} · cgroups {p['cgroups']}",
+        f"memfd_secret {yn(p['memfd_secret'])} · cgroups {known(p['cgroups'], 'none')}",
         f"namespaces  {', '.join(p['namespaces']) or 'n/a'}",
         f"config      {cfg_s}",
         f"tools       {tools}",
         f"egress      proxy variables set: {proxies} (names only; values are never printed)",
         f"workspace   {os.getcwd()} writable: {yn(p['cwd_writable'])} · python {p['python']}",
     ]
+    if p["os"] == "emscripten":
+        lines.append("reading     no kernel here: this is Python compiled to WebAssembly (Pyodide). A policy can be "
+                     "hashed, checked and translated here; it can be enforced only by a Linux kernel.")
+    elif p["os"].startswith("linux") and not p["landlock_abi"]:
+        lines.append("reading     Landlock is not available on this kernel: `run` would refuse rather than run "
+                     "a command without its policy.")
     if p["uid"] == 0 and p["caps_all"]:
         lines.append("reading     this process is root with every capability and no seccomp: the grant is "
                      "everything. A policy applied from here binds its children, not itself.")

@@ -33,6 +33,18 @@ EXIT_REFUSED  = 125           # the policy was refused, nothing ran
 EXIT_APPLY    = 126           # the policy could not be applied, nothing ran
 
 
+def unavailable() -> str:
+    """Why this runtime cannot enforce a policy at all, or '' if it might.
+
+    A WebAssembly runtime (Pyodide, emscripten) has no kernel and no processes: there is no
+    child to confine, so `run` and `hello` refuse there, while hashing, checking and translating
+    a policy work unchanged. Landlock's absence on a real kernel is checked separately."""
+    if sys.platform == "emscripten" or not hasattr(os, "fork"):
+        return (f"this runtime ({sys.platform}) has no kernel and cannot start processes, so there is "
+                f"no child to confine; policy hash, check and translate work here, run and hello need Linux")
+    return ""
+
+
 def plan(policy: dict) -> dict:
     """What `run` will do here, computed without doing it (for --verbose and for tests)."""
     abi = landlock.abi()
@@ -115,6 +127,10 @@ def run(policy: dict, argv: list, expect_hash: str = None, verbose: bool = False
     if not argv:
         print("sharness-ai run: nothing to run (give a command after --)", file=sys.stderr)
         return EXIT_REFUSED
+    reason = unavailable()
+    if reason:
+        print(f"sharness-ai run: refused. {reason}. Nothing ran.", file=sys.stderr)
+        return EXIT_APPLY
     if landlock.abi() < 1:
         print("sharness-ai run: refused. Landlock is not available on this kernel, so the "
               "policy could not be enforced. Nothing ran.", file=sys.stderr)

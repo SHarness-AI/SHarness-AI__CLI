@@ -108,7 +108,9 @@ this package, the example policies), three kernels to run it on: v86's emulated 
 same in a browser tab, and the host's kernel through the i386 syscall table. Every form applies
 a policy to a child: a Boundary for the child, a Setting for the process that ran it. The build
 script is standard library only and writes the initramfs itself; v86 is the one dependency, pinned,
-and only under `experiments/browser/`. Details and the measured table: [browser/README.md](browser/README.md);
+and only under `experiments/browser/`. The same folder carries a playground: `sharness-ai` typed into Pyodide (hash, check, translate;
+`run` and `hello` refuse, as they must with no kernel) and into a shell in the guest (everything,
+enforced). Details and the measured table: [browser/README.md](browser/README.md);
 the options not taken and what a browser never shows: [sharness.ai/code/browser](https://sharness.ai/code/browser/index.html).
 
 ## E10 policy translate

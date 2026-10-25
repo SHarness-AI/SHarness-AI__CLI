@@ -1,7 +1,7 @@
 [tool.poetry]
 name        = "sharness-ai"
 version     = "v0.1.0"
-description = "SHarness: runs agents and their tools as small, single-purpose, kernel-locked processes talking over mutually authenticated connections. Experiments stage: probe, policy hash, run, hello."
+description = "SHarness: runs agents and their tools as small, single-purpose, kernel-locked processes talking over mutually authenticated connections. Experiments stage: probe, policy hash/check/translate, run, hello."
 readme      = "README.md"
 license     = "Apache-2.0"
 authors     = ["The Cyber Boardroom"]
@@ -9,7 +9,7 @@ keywords    = ["sharness", "sharness-ai", "cli", "ai-agents", "agent-security", 
                "landlock", "seccomp", "mtls", "kms", "least-privilege", "prompt-injection"]
 homepage    = "https://sharness.ai"
 repository  = "https://github.com/SHarness-AI/SHarness-AI__CLI"
-documentation = "https://sharness.ai/architecture/index.html"
+documentation = "https://sharness.ai/design/architecture/index.html"
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
@@ -20,8 +20,9 @@ classifiers = [
 packages = [{ include = "sharness_ai" }]
 
 [tool.poetry.urls]
-"Architecture"   = "https://sharness.ai/architecture/index.html"
-"Roadmap"        = "https://sharness.ai/roadmap/index.html"
+"Architecture"   = "https://sharness.ai/design/architecture/index.html"
+"Roadmap"        = "https://sharness.ai/design/roadmap/index.html"
+"Playground"     = "https://sharness.ai/code/playground/index.html"
 "For AI agents"  = "https://sharness.ai/llms.txt"
 "Issues" = "https://github.com/SHarness-AI/SHarness-AI__CLI/issues"
 

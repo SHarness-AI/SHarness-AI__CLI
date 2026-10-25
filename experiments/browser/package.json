@@ -7,6 +7,7 @@
     "build": "python3 build_guest.py",
     "node": "node boot_node.mjs",
     "browser": "node boot_browser.mjs",
+    "playground": "node test_playground.mjs",
     "native": "sh chroot_native.sh"
   },
   "dependencies": {
