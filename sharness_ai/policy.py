@@ -1,19 +1,22 @@
 """Process Behaviour Policy, version 0: load, check the shape, canonicalise, hash.
 
-The hash is the one value the person supplies from outside the agent (sharness.ai/policies).
+The hash is the one value the person supplies from outside the agent (sharness.ai/design/policies).
 It is SHA-256 over canonical JSON: keys sorted, no whitespace, UTF-8, integers only. With
 integers only, Python's json.dumps(sort_keys=True, separators=(',', ':'), ensure_ascii=False)
 and the browser's JSON.stringify over sorted keys produce the same bytes, so the same policy
-hashes the same in the CLI and in the browser mockup on sharness.ai/mockups/policy-hash.html.
+hashes the same in the CLI and in the browser mockup on sharness.ai/explain/mockups/policy-hash.html.
 RFC 8785 (JCS) is the target; floats are refused rather than canonicalised, which is the one
 place the two would differ.
 
-The shape (v0) is deliberately small; the full schema is designed on sharness.ai/policies:
+The shape (v0) is deliberately small; the full schema is designed on sharness.ai/design/policies:
 
     {"pbp": 1, "id": "hello",
      "files":   {"read": ["/usr", ...], "write": [], "exec": ["/usr", ...]},
      "network": "none"  |  {"connect_tcp_ports": [443]},
-     "process": {"no_new_privs": true}}
+     "process": {"no_new_privs": true, "max_memory_mb": 256, "max_pids": 16}}
+
+process.max_memory_mb and process.max_pids are optional: a cap on the child's address space and
+process count (RLIMIT_AS, RLIMIT_NPROC, and a cgroup where one can be made).
 """
 import hashlib
 import json
@@ -98,6 +101,14 @@ def check(policy) -> list:
     proc = policy.get("process", {})
     if not isinstance(proc, dict) or proc.get("no_new_privs", True) is not True:
         p.append("process.no_new_privs must be true (v0 always sets it)")
+    else:
+        for k in ("max_memory_mb", "max_pids"):
+            v = proc.get(k)
+            if v is not None and (isinstance(v, bool) or not isinstance(v, int) or v < 0):
+                p.append(f"process.{k} must be a non-negative integer")
+        for k in proc:
+            if k not in ("no_new_privs", "max_memory_mb", "max_pids"):
+                p.append(f"process.{k}: unknown key")
     for k in policy:
         if k not in ("pbp", "id", "layer", "files", "network", "process", "notes"):
             p.append(f"{k}: unknown key")
@@ -112,5 +123,7 @@ def summary(policy) -> str:
     files = policy.get("files", {})
     net = policy.get("network")
     net_s = "none" if net == "none" else f"tcp connect to ports {net.get('connect_tcp_ports')}"
+    proc = policy.get("process", {})
+    caps = "".join(f"; {k.replace('max_', 'max ')} {proc[k]}" for k in ("max_memory_mb", "max_pids") if proc.get(k) is not None)
     return (f"read {len(files.get('read', []))} path(s), write {len(files.get('write', []))}, "
-            f"exec {len(files.get('exec', []))}; network {net_s}")
+            f"exec {len(files.get('exec', []))}; network {net_s}{caps}")

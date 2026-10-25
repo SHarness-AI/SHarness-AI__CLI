@@ -13,6 +13,7 @@ then runs small probes under it through `sharness-ai run` and checks each outcom
     write   creating a file in /tmp              must be refused
     write   creating a file in the workspace     must be refused
     net     TCP connect to 1.1.1.1:443           must be refused
+    memory  400 MiB allocated under a 128 MiB cap must be refused (MemoryError, or killed)
     hash    a wrong --expect-hash                must refuse to run anything
 
 It is the smallest honest version: what SHarness's launcher would do for the whole agent,
@@ -32,8 +33,11 @@ PROBES = {
     "write-tmp": "open('/tmp/sharness-ai-hello.tmp', 'w').close(); print('ok')",
     "write-cwd": "open('sharness-ai-hello.tmp', 'w').close(); print('ok')",
     "net":       "import socket; socket.create_connection(('1.1.1.1', 443), timeout=5); print('ok')",
+    "memory":    "b = bytearray(400 << 20); b[-1] = 1; print('ok')",
 }
-EXPECT = {"read": "allowed", "write-tmp": "refused", "write-cwd": "refused", "net": "refused", "hash": "refused"}
+EXPECT = {"read": "allowed", "write-tmp": "refused", "write-cwd": "refused", "net": "refused",
+          "memory": "refused", "hash": "refused"}
+MAX_MEMORY_MB = 128
 
 
 def hello_policy(workspace=None) -> dict:
@@ -50,7 +54,7 @@ def hello_policy(workspace=None) -> dict:
         "notes": "sharness-ai hello: deny-all for one child process. Generated for this interpreter.",
         "files": {"read": sorted(set(prefixes) | {ws}), "write": [], "exec": prefixes},
         "network": "none",
-        "process": {"no_new_privs": True},
+        "process": {"no_new_privs": True, "max_memory_mb": MAX_MEMORY_MB},
     }
 
 
@@ -69,7 +73,10 @@ def _classify(name, rc, out):
     if rc == 0 and out.endswith("ok"):
         return "allowed"
     last = out.strip().splitlines()[-1] if out.strip() else f"exit {rc}"
-    for e in ("PermissionError", "EACCES", "ENETUNREACH", "OSError", "ConnectionRefused", "TimeoutError", "timed out"):
+    if rc in (-9, 137) or "Killed" in out:
+        return "refused (killed by the kernel: the cgroup memory cap)"
+    for e in ("PermissionError", "EACCES", "ENETUNREACH", "OSError", "ConnectionRefused", "TimeoutError", "timed out",
+              "MemoryError"):
         if e in out:
             return f"refused ({last[:90]})"
     return f"failed otherwise ({last[:90]})"
@@ -104,7 +111,7 @@ def hello(as_json=False) -> int:
         print("sharness-ai hello   experiment E04: the memo's acceptance test, for one child process")
         print(f"policy      {policy['id']}  {h}")
         print(f"            read-only: {', '.join(policy['files']['read'])}")
-        print(f"            write: none · exec: system and Python · network: none")
+        print(f"            write: none · exec: system and Python · network: none · memory: {MAX_MEMORY_MB} MiB")
         print(f"kernel      Landlock ABI {abi or 'none'} · empty network namespace: "
               f"{'yes (uid 0)' if netns_possible else 'only if an unprivileged user namespace is allowed; '
                                                      'else Landlock denies TCP (not UDP)'}")
@@ -114,5 +121,5 @@ def hello(as_json=False) -> int:
         print(f"result      {len(held)}/{len(results)} held")
         print("caveat      applied by this process to its own children: a Boundary for them, a Setting for "
               "whoever ran this, who could have skipped it. The launcher that makes it a Boundary for the "
-              "agent too is the design: https://sharness.ai/policies/index.html#2-who-enforces-decides-the-barrier-kind")
+              "agent too is the design: https://sharness.ai/design/policies/index.html#2-who-enforces-decides-the-barrier-kind")
     return 0 if not failed else 1

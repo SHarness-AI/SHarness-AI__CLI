@@ -1,7 +1,7 @@
 """The grant: what a process here can do before any policy is applied.
 
 In the Agent Behaviour Policy model a *grant* is what the subject can technically do; the
-*mandate* is what it is authorised to do; the *delta* is the gap (sharness.ai/policies §1).
+*mandate* is what it is authorised to do; the *delta* is the gap (sharness.ai/design/policies §1).
 This probe measures the grant of the environment it runs in: identity, capabilities, the
 kernel's sandboxing primitives, the tools present, and whether egress goes through a proxy.
 Read-only. It prints names of environment variables, never their values.

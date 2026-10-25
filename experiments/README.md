@@ -4,7 +4,7 @@ The memo of 24 October 2026 asks for SHarness to start with *very simple example
 component done in isolation, as slim as possible, then harden, then test*. This folder is the
 ladder: numbered experiments, each small enough to read in one sitting, each saying where it
 runs and what it does and does not show. The map, with the browser mockups and the storyboards,
-is on [sharness.ai/experiments](https://sharness.ai/experiments/index.html).
+is on [sharness.ai/code/experiments](https://sharness.ai/code/experiments/index.html).
 
 Status words, as on the site: **runnable** means the code is in this repository and its tests
 pass; **measured** means run in a named environment on a named date; **planned** means described
@@ -13,11 +13,11 @@ only. No experiment is a SHarness component.
 | # | Experiment | Runs where | Status |
 |---|---|---|---|
 | E01 | `sharness-ai probe`: the grant, what a process here can do before any policy | any OS (Linux for the kernel facts) | runnable |
-| E02 | `sharness-ai policy hash`: canonical JSON → `sha256:…`, the one value the person supplies; the same hash in the [browser mockup](https://sharness.ai/mockups/policy-hash.html) | any OS, and the browser | runnable |
-| E03 | `sharness-ai run --policy p.json -- cmd`: one command under a policy (Landlock files and TCP ports, no network) | Linux 5.13+ (Landlock ABI 1; TCP rules ABI 4) | runnable |
-| E04 | `sharness-ai hello`: the memo's acceptance test for one child process: read allowed, write refused, network refused, wrong hash refused | Linux; a Claude Code session via the [skill](../.claude/skills/sharness-hello/SKILL.md) | runnable, measured 24 Oct 2026 |
+| E02 | `sharness-ai policy hash`: canonical JSON → `sha256:…`, the one value the person supplies; the same hash in the [browser mockup](https://sharness.ai/explain/mockups/policy-hash.html) | any OS, and the browser | runnable |
+| E03 | `sharness-ai run --policy p.json -- cmd`: one command under a policy (Landlock files and TCP ports, no network; memory and process-count caps by rlimit and cgroup) | Linux 5.13+ (Landlock ABI 1; TCP rules ABI 4; cgroups need root or a delegated subtree) | runnable, caps measured 25 Oct 2026 |
+| E04 | `sharness-ai hello`: the memo's acceptance test for one child process: read allowed, writes refused, network refused, memory over the cap refused, wrong hash refused | Linux; a Claude Code session via the [skill](../.claude/skills/sharness-hello/SKILL.md) | runnable, measured 24 and 25 Oct 2026 (6 of 6) |
 | E05 | session CA + role certificates + the edge matrix over mutual TLS (what the design measured by hand) as a repeatable script | any OS with `cryptography` | planned |
-| E06 | the process-tree proof of concept: a mini orchestrator that cannot exec a shell, and a bash server outside its domain | Linux, root, following the [safety rules](https://sharness.ai/process-tree/index.html#4-safety-rules-for-testing-inside-a-live-agent-session) | planned |
+| E06 | the process-tree proof of concept: a mini orchestrator that cannot exec a shell, and a bash server outside its domain | Linux, root, following the [safety rules](https://sharness.ai/design/process-tree/index.html#4-safety-rules-for-testing-inside-a-live-agent-session) | planned |
 | E07 | `sharness.llm` as a Messages API pass-through with a secret filter on tool results, pointed at by `ANTHROPIC_BASE_URL` | any OS | planned |
 | E08 | `sharness.kms` v0: make an identity in-process, open a sealed `m1`, re-seal derived keys to a one-time key, never print a clear key | any OS with `cryptography` | planned |
 
@@ -46,7 +46,7 @@ $ sharness-ai policy hash experiments/policies/deny-all-example.json
 sha256:ab1d3e4e779313274f7a1d3ef3e46f6eacef038d8cfaa6198151a45cd82dcc76
 ```
 
-Paste the same file into [the browser mockup](https://sharness.ai/mockups/policy-hash.html)
+Paste the same file into [the browser mockup](https://sharness.ai/explain/mockups/policy-hash.html)
 and the hash must be the same. That is the whole experiment: two implementations, one hash,
 so a person can supply it from outside the agent and a launcher can check it.
 
@@ -68,7 +68,9 @@ anything unless the file hashes to that value: the launcher's first check, in on
 What it enforces, and with what: files and exec by Landlock path rules; TCP by Landlock port
 rules (ABI 4+); `network: "none"` additionally tries an empty network namespace (root, or an
 unprivileged user namespace where the kernel allows one). Landlock does not see UDP, so without
-the namespace DNS still resolves. seccomp, uids, cgroups and mutual TLS are not here yet.
+the namespace DNS still resolves. `process.max_memory_mb` and `process.max_pids`: `RLIMIT_AS` and
+`RLIMIT_NPROC` on the child, plus a memory and pids cgroup (v1 or v2) where `/sys/fs/cgroup` is
+writable; the parent removes the cgroup afterwards. seccomp, uids and mutual TLS are not here yet.
 
 ## E04 hello
 
@@ -80,8 +82,9 @@ policy      hello  sha256:…
   ✔ write-tmp  expected refused  got refused (PermissionError: [Errno 13] Permission denied: '/tmp/sharness-ai-hello.tmp')
   ✔ write-cwd  expected refused  got refused (PermissionError: [Errno 13] Permission denied: 'sharness-ai-hello.tmp')
   ✔ net        expected refused  got refused (PermissionError: [Errno 13] Permission denied)
+  ✔ memory     expected refused  got refused (MemoryError)
   ✔ hash       expected refused  got refused
-result      5/5 held
+result      6/6 held
 caveat      applied by this process to its own children: a Boundary for them, a Setting for whoever ran this ...
 ```
 
@@ -94,5 +97,6 @@ is passed for the agent itself only when a launcher above the agent applies the 
 | Date | Environment | Result |
 |---|---|---|
 | 24 Oct 2026 | one Claude Code cloud session (Ubuntu 24.04, Linux 6.18, Landlock ABI 7, uid 0, Python 3.13) | E04: 5/5 held; E03: port 443 allowed and port 80 refused under `allow-https-example`; whole `hello` run 0.6 s |
+| 25 Oct 2026 | the same kind of session (cgroups v1 with a unified mount) | E03 caps: `max_memory_mb: 64` and `max_pids: 4` applied as `cgroup1 memory.limit_in_bytes`, `cgroup1 pids.max`, `RLIMIT_AS`, `RLIMIT_NPROC`; the fifth background process got "Cannot fork"; E04 with a 128 MiB cap: 6/6 held, the 400 MiB allocation raised MemoryError |
 
 Published with method on [sharness.ai/evidence](https://sharness.ai/evidence/index.html).

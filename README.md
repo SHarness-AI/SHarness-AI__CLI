@@ -38,15 +38,15 @@ is the first app designed to run inside it.
 | `sharness.policy` | the policy manifest, its layers and its hash (not a process) |
 
 Read more on the site:
-[why](https://sharness.ai/why/index.html) ·
-[architecture](https://sharness.ai/architecture/index.html) ·
-[components](https://sharness.ai/components/index.html) ·
-[keys and the KMS](https://sharness.ai/keys/index.html) ·
-[Process Behaviour Policies](https://sharness.ai/policies/index.html) ·
-[agents and LLMs](https://sharness.ai/agents/index.html) ·
+[why](https://sharness.ai/design/why/index.html) ·
+[architecture](https://sharness.ai/design/architecture/index.html) ·
+[components](https://sharness.ai/design/components/index.html) ·
+[keys and the KMS](https://sharness.ai/design/keys/index.html) ·
+[Process Behaviour Policies](https://sharness.ai/design/policies/index.html) ·
+[agents and LLMs](https://sharness.ai/design/agents/index.html) ·
 [evidence](https://sharness.ai/evidence/index.html) ·
-[roadmap and open decisions](https://sharness.ai/roadmap/index.html) ·
-[the source design documents](https://sharness.ai/documents/index.html)
+[roadmap and open decisions](https://sharness.ai/design/roadmap/index.html) ·
+[the source design documents](https://sharness.ai/project/sources/index.html)
 
 SHarness is unrelated to Sharness, the shell testing library.
 
@@ -63,15 +63,15 @@ The release on PyPI (v0.1.0, as of 24 Oct 2026) only reports its version. The co
 ## The commands: the first experiments
 
 Numbered and described in [experiments/README.md](experiments/README.md); the map of mockups,
-experiments and storyboards is [sharness.ai/experiments](https://sharness.ai/experiments/index.html).
+experiments and storyboards is [sharness.ai/code/experiments](https://sharness.ai/code/experiments/index.html).
 
 | Command | Experiment | What it shows |
 |---|---|---|
 | `sharness-ai probe` | E01 | the **grant**: what a process here can do before any policy (uid, capabilities, Landlock ABI, `memfd_secret`, namespaces, tools, whether egress is proxied). Read-only; prints the names of proxy variables, never values |
-| `sharness-ai policy hash FILE` | E02 | the one value the person supplies: canonical JSON → `sha256:…`. The [browser mockup](https://sharness.ai/mockups/policy-hash.html) produces the same hash from the same file |
+| `sharness-ai policy hash FILE` | E02 | the one value the person supplies: canonical JSON → `sha256:…`. The [browser mockup](https://sharness.ai/explain/mockups/policy-hash.html) produces the same hash from the same file |
 | `sharness-ai policy check FILE` | E02 | the shape of a v0 Process Behaviour Policy |
-| `sharness-ai run --policy FILE [--expect-hash sha256:…] -- CMD…` | E03 | one command under a policy: Landlock file and exec rules, TCP port rules, no network; refuses to run anything if the hash does not match |
-| `sharness-ai hello` | E04 | the memo's acceptance test for one child process: read allowed, write refused, network refused, wrong hash refused. Exit 0 when every expectation held |
+| `sharness-ai run --policy FILE [--expect-hash sha256:…] -- CMD…` | E03 | one command under a policy: Landlock file and exec rules, TCP port rules, no network, a memory cap and a process-count cap (`RLIMIT_AS`, `RLIMIT_NPROC`, and a cgroup where one can be made); refuses to run anything if the hash does not match |
+| `sharness-ai hello` | E04 | the memo's acceptance test for one child process: read allowed, writes refused, network refused, a 400 MiB allocation under a 128 MiB cap refused, wrong hash refused. Exit 0 when every expectation held |
 
 ```
 $ sharness-ai hello
@@ -81,20 +81,23 @@ policy      hello  sha256:…
   ✔ write-tmp  expected refused  got refused (PermissionError: [Errno 13] Permission denied: '/tmp/sharness-ai-hello.tmp')
   ✔ write-cwd  expected refused  got refused (PermissionError: [Errno 13] Permission denied: 'sharness-ai-hello.tmp')
   ✔ net        expected refused  got refused (PermissionError: [Errno 13] Permission denied)
+  ✔ memory     expected refused  got refused (MemoryError)
   ✔ hash       expected refused  got refused
-result      5/5 held
+result      6/6 held
 caveat      applied by this process to its own children: a Boundary for them, a Setting for whoever ran this ...
 ```
 
 **What is enforced, and by what.** Files and exec by [Landlock](https://docs.kernel.org/userspace-api/landlock.html)
 path rules (Linux 5.13+, through `ctypes`, no C extension); TCP by Landlock port rules (ABI 4+,
 Linux 6.7+); `network: "none"` also tries an empty network namespace. Landlock does not see UDP,
-so without the namespace DNS still resolves. Not here yet: seccomp, per-component uids, cgroups,
-mutual TLS, the launcher, any component. Standard library only; Python 3.11+.
+so without the namespace DNS still resolves. `process.max_memory_mb` and `max_pids` set `RLIMIT_AS`
+and `RLIMIT_NPROC` on the child and, where `/sys/fs/cgroup` is writable, a memory and pids cgroup
+(measured 25 Oct 2026: a 400 MiB allocation under 128 MiB raises MemoryError; the fifth fork under
+`max_pids: 4` fails). Not here yet: seccomp, per-component uids, mutual TLS, the launcher, any component. Standard library only; Python 3.11+.
 
 **The caveat is part of the result.** A policy a process applies to its own children is a Boundary
 for them and only a Setting for itself (it could have skipped it). Making it a Boundary for the
-agent too needs the launcher above the agent: [who enforces decides](https://sharness.ai/policies/index.html#2-who-enforces-decides-the-barrier-kind).
+agent too needs the launcher above the agent: [who enforces decides](https://sharness.ai/design/policies/index.html#2-who-enforces-decides-the-barrier-kind).
 
 **For a Claude Code session:** the skill in [.claude/skills/sharness-hello](.claude/skills/sharness-hello/SKILL.md)
 runs E01 and E04 inside the session under the design's safety rules and reports the result in the

@@ -3,7 +3,7 @@
 Landlock (Linux 5.13+) lets an unprivileged process restrict itself and every child it will
 ever start: filesystem access per path (ABI 1), TCP bind/connect per port (ABI 4), signal and
 abstract-socket scoping (ABI 6). Once applied, no descendant can lift it, root included. That
-inheritance is why SHarness enforces at the root of the process tree (sharness.ai/process-tree).
+inheritance is why SHarness enforces at the root of the process tree (sharness.ai/design/process-tree).
 
 What is here is the smallest useful subset: a ruleset, path rules, port rules, restrict self.
 Measured in this project's experiments (see experiments/README.md); the numbers behind the

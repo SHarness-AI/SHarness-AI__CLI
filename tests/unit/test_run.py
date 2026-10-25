@@ -97,4 +97,5 @@ class Test_Hello:
         assert got["hash"] == "refused"
         if ABI >= 4 or os.geteuid() == 0:
             assert got["net"].startswith("refused")
-            assert r.returncode == 0 and data["held"] == data["of"] == 5
+            assert got["memory"].startswith("refused")
+            assert r.returncode == 0 and data["held"] == data["of"] == 6

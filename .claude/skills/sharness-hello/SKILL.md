@@ -5,11 +5,11 @@ description: Run the SHarness experiments E01 (probe the grant) and E04 (the hel
 
 # sharness-hello
 
-You are about to run two experiments from https://sharness.ai/experiments/index.html in this
+You are about to run two experiments from https://sharness.ai/code/experiments/index.html in this
 session. They are small, read-only or confined to child processes, and they are the first two
 rungs of the SHarness ladder: nothing here is a SHarness component.
 
-## Safety rules (from https://sharness.ai/process-tree/index.html#4-safety-rules-for-testing-inside-a-live-agent-session)
+## Safety rules (from https://sharness.ai/design/process-tree/index.html#4-safety-rules-for-testing-inside-a-live-agent-session)
 
 1. Never touch the orchestrator (the Claude Code process) or the session bridge.
 2. Never add firewall rules, never change sysctls, never create users for this.

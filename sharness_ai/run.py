@@ -7,14 +7,16 @@ What happens, in the child, before exec:
      (unshare(CLONE_NEWNET); root, or an unprivileged user namespace around it). Otherwise,
      Landlock denies every TCP bind and connect (ABI 4+). Landlock does not see UDP, so
      without a namespace DNS lookups still go out; the result says which happened.
-  2. prctl(PR_SET_NO_NEW_PRIVS).
-  3. A Landlock ruleset: read, write and exec rights beneath the policy's paths, TCP connect
+  2. process.max_memory_mb / max_pids: RLIMIT_AS and RLIMIT_NPROC on the child, and a cgroup
+     (memory.max, pids.max) when /sys/fs/cgroup is writable here (root, or a delegated subtree).
+  3. prctl(PR_SET_NO_NEW_PRIVS).
+  4. A Landlock ruleset: read, write and exec rights beneath the policy's paths, TCP connect
      to the policy's ports, nothing else. restrict_self() makes it final for this process
      and every descendant.
 
 Who runs this decides what it is. Applied by a process to its own children it is a Boundary
 for them and only a Setting for the process that applied it (which could have skipped it).
-That is the whole argument of sharness.ai/policies §2, and the reason the end state is a
+That is the whole argument of sharness.ai/design/policies §2, and the reason the end state is a
 launcher above the agent, not a command the agent runs.
 """
 import ctypes
@@ -22,7 +24,7 @@ import errno
 import os
 import sys
 
-from sharness_ai import landlock
+from sharness_ai import landlock, limits
 from sharness_ai.policy import PolicyError, check, policy_hash
 
 CLONE_NEWUSER = 0x10000000
@@ -63,10 +65,16 @@ def apply(policy: dict) -> dict:
     problems = check(policy)
     if problems:
         raise PolicyError("; ".join(problems))
-    applied = {"netns": "", "landlock_abi": landlock.abi(), "paths": 0, "missing": [], "ports": []}
+    applied = {"netns": "", "landlock_abi": landlock.abi(), "paths": 0, "missing": [], "ports": [], "limits": []}
     net = policy.get("network")
     if net == "none":
         applied["netns"] = _unshare_net()
+    proc = policy.get("process", {})
+    mem, pids = proc.get("max_memory_mb"), proc.get("max_pids")
+    if mem or pids is not None:
+        cg, _ = limits.cgroup(os.getpid(), mem, pids)        # the parent removes it afterwards
+        applied["limits"] += cg
+        applied["limits"] += limits.rlimits(mem, pids)
     rs = landlock.Ruleset(handle_net=True)
     files = policy.get("files", {})
     for p in files.get("read", []):
@@ -130,4 +138,8 @@ def run(policy: dict, argv: list, expect_hash: str = None, verbose: bool = False
             finally:
                 os._exit(EXIT_APPLY)
     _, status = os.waitpid(pid, 0)
+    proc = policy.get("process", {})
+    if proc.get("max_memory_mb") or proc.get("max_pids") is not None:
+        limits.remove([f"{limits.CG}/{limits.NAME}/{pid}", f"{limits.CG}/memory/{limits.NAME}/{pid}",
+                       f"{limits.CG}/pids/{limits.NAME}/{pid}"])
     return os.waitstatus_to_exitcode(status)
