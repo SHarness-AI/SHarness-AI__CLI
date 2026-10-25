@@ -25,6 +25,7 @@ const emulator = new V86({
   cmdline: "console=ttyS0,115200 rdinit=/init panic=5 tsc=unstable",
   memory_size: 512 * 1024 * 1024, vga_memory_size: 2 * 1024 * 1024,
   autostart: true, disable_keyboard: true, disable_mouse: true, disable_speaker: true,
+  net_device: { type: "virtio", relay_url: "fetch" },   // the guest's packets become fetch() calls; port 80 only
 });
 const dec = new TextDecoder();
 let line = "";

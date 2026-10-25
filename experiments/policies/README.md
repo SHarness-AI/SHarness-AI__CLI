@@ -1,6 +1,6 @@
 # Example Process Behaviour Policies (v0)
 
-Seven v0 policies: two minimal examples and five profiles, P0 to P4, from a hello world up to
+Eight v0 policies: two minimal examples and six profiles, P0 to P5, from a hello world up to
 sgit. All share one shape ([`policy.py`](../../sharness_ai/policy.py)): `files` (read, write,
 exec, as path prefixes), `network` (`"none"` or TCP ports a child may connect to) and `process`
 (`no_new_privs`, an address-space cap, a process-count cap). The workspace is `/work` in every
@@ -15,6 +15,7 @@ profile; change the paths, the hash changes, and that is the point: the hash nam
 | `p2-tool-server.json` | a tool or MCP server on stdio | none | none | 512 MiB, 16 |
 | `p3-newsroom-agent.json` | the sgit.ai newsroom agent: a vault checkout in, articles out | `/work/out` | TCP 443 | 1 GiB, 64 |
 | `p4-sgit.json` | the sgit CLI: the vault checkout and `/tmp` | `/work/vault`, `/tmp` | TCP 443 | 512 MiB, 16 |
+| `p5-web-fetch.json` | a tool that fetches web pages for an agent; in the browser bench the page's egress allowlist names the hosts | `/work/out` | TCP 80, 443 | 256 MiB, 16 |
 
 ```
 sharness-ai policy check experiments/policies/p1-agent-session.json

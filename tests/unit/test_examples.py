@@ -11,7 +11,7 @@ SYSTEM_EXEC = {"/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc"}
 
 class Test_examples:
     def test_there_are_examples(self):
-        assert len(FILES) >= 7
+        assert len(FILES) >= 8
 
     def test_every_example_is_well_formed(self):
         for f in FILES:
@@ -37,6 +37,7 @@ class Test_examples:
             "p2-tool-server": "sha256:b31ca68ae1900af5feaa2e286d5be63043110f6980055a6aa96be807d8bdba06",
             "p3-newsroom-agent": "sha256:35b17ac8592a0c13b8e75b04e0679f56248681544db71fd5a2180a2827c71aff",
             "p4-sgit": "sha256:661db5999ffbecbde5fced78fd052f8cb5ecaf9ae0d18a218579fb173c1b358e",
+            "p5-web-fetch": "sha256:b897938091c29713f4478a2a6f040fbf47e6cd5164a6bfb509c3b1ffa9d41862",
         }
         for f in FILES:
             assert policy.policy_hash(policy.load(f)) == pinned[f.stem], f.name

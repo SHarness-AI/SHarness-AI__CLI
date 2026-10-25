@@ -62,7 +62,7 @@ class Test_cpio:
 
 class Test_guest_pieces:
     def test_files_present(self):
-        for name in ("init.sh", "page.html", "playground.html", "playground.js", "build_wheel.py", "test_playground.mjs",
+        for name in ("init.sh", "page.html", "playground.html", "playground.js", "netwatch.js", "build_wheel.py", "test_playground.mjs",
                      "boot_node.mjs", "boot_browser.mjs", "chroot_native.sh", "package.json", "README.md"):
             assert (BROWSER / name).exists(), name
 

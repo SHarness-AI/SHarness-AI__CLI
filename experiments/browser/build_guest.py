@@ -9,7 +9,8 @@ and E04 on a second kernel, one that anyone can run without installing anything.
     python3 experiments/browser/build_guest.py [--out DIR] [--cache DIR] [--no-www]
 
 Steps: fetch the pinned Alpine 3.23 x86 packages (busybox, musl, python3 and what they need,
-and linux-virt, whose kernel is built with Landlock); unpack them with tarfile; add the
+and linux-virt, whose kernel is built with Landlock); unpack them with tarfile; add the virtio-net
+driver so the guest has a network card when the page gives it one; add the
 sharness_ai package from this checkout and the example policies; write /init (init.sh);
 pack a newc cpio, gzipped; copy the kernel, the initramfs, v86 (from node_modules) and the
 BIOS files into www/ next to the page, with the playground (playground.html, playground.js),
@@ -151,6 +152,14 @@ def main(argv=None):
     work.mkdir(parents=True)
     for pol in sorted((REPO / "experiments" / "policies").glob("*.json")):
         shutil.copy(pol, work / pol.name)
+    # the network card's driver: virtio-net, a module in Alpine's kernel, with its two dependencies,
+    # unpacked so busybox insmod needs no decompressor; v86 presents the card when the page asks for it
+    modver = next((kern / "lib" / "modules").iterdir()).name
+    moddir = rootfs / "lib" / "modules" / modver
+    moddir.mkdir(parents=True, exist_ok=True)
+    for rel in ("kernel/net/core/failover.ko.gz", "kernel/drivers/net/net_failover.ko.gz", "kernel/drivers/net/virtio_net.ko.gz"):
+        src = kern / "lib" / "modules" / modver / rel
+        (moddir / Path(rel).name[:-3]).write_bytes(gzip.decompress(src.read_bytes()))
     init = rootfs / "init"
     shutil.copy(HERE / "init.sh", init)
     init.chmod(0o755)
@@ -171,7 +180,7 @@ def main(argv=None):
         if not (build / "libv86.mjs").exists():
             sys.exit(f"v86 not found at {a.v86}: run `npm ci` in {HERE} first (package.json pins the version)")
         for src in (build / "libv86.mjs", build / "v86.wasm", cache / "seabios.bin", cache / "vgabios.bin",
-                    vmlinuz, initramfs, HERE / "page.html", HERE / "playground.html", HERE / "playground.js"):
+                    vmlinuz, initramfs, HERE / "page.html", HERE / "playground.html", HERE / "playground.js", HERE / "netwatch.js"):
             shutil.copy(src, www / ("index.html" if src.name == "page.html" else src.name))
         (www / "policies").mkdir(exist_ok=True)
         for pol in sorted((REPO / "experiments" / "policies").glob("*.json")):

@@ -35,6 +35,34 @@ way in). [`build_wheel.py`](build_wheel.py) builds the wheel with the standard l
 names it `<version>+dev.<commit>`, so it can never be mistaken for a PyPI release.
 `node test_playground.mjs` drives both tabs in headless Chromium and checks eleven things.
 
+## The network backend and the interceptor
+
+The guest has a network card (virtio-net; the driver is unpacked from Alpine's kernel package into
+the initramfs) and v86's **fetch backend** behind it: the page answers as the router, the DHCP
+server and the DNS of a fake subnet, and turns every HTTP request the guest makes on port 80 into
+the browser's own `fetch()`. Other ports are refused with a TCP reset: there is no TLS passthrough,
+the page is the TLS client. That is the shape of `sharness.net` in the design, done by the page.
+
+[`netwatch.js`](netwatch.js) is the interceptor, in the playground under the Linux terminal: every
+frame the guest sends or receives is decoded (ARP, DHCP, DNS with record types, ICMP, TCP flags,
+HTTP request and status lines) into a table of flows with a detail pane (headers both ways, every
+event with its time). It also wraps the backend's `fetch` with an **egress allowlist of hostnames**,
+enforced outside the guest by code the guest cannot reach: a Boundary for everything inside, root
+included. A host not on the list gets a 403 from the page before any `fetch()` happens. Three
+verdicts appear in one session, and the test checks all three:
+
+| What the guest did | Where it was decided | What the panel shows |
+|---|---|---|
+| `wget http://sharness.ai/llms.txt`, no policy | the page: on the allowlist | DNS, TCP :80, `HTTP GET … allowed 200` |
+| `wget http://example.com/` | the page: not on the allowlist | `HTTP GET … blocked`, the guest sees 403 |
+| the same under P1 (TCP 443 only) | the **kernel**, before any packet left the process | no TCP or HTTP row at all; the DNS query still appears, because Landlock does not see UDP |
+| the same under P5 (80 and 443) | the kernel allows, the page allows | the flow, with 200 |
+
+Limits, on the panel itself: a host that sends no CORS header fails in the browser (the guest sees
+502); only HTTP on port 80 is served; the guest's view of DNS is the page's static answer, a fake
+address the page maps back to the name. In Node, `boot_node.mjs` runs the same guest with Node's
+`fetch()`; behind a proxy set `NODE_USE_ENV_PROXY=1`.
+
 ## Build
 
 ```
@@ -102,8 +130,7 @@ the three hashes of P0 were identical; 11 of 11 checks, no page errors, about 85
 
 ## Not here
 
-A network backend for the guest (v86 can proxy over `fetch` or WebSocket), so a connect on port
-443 would succeed without a policy and fail with `EACCES` under one. A booted-state snapshot so
+A booted-state snapshot so
 the page opens in seconds rather than after a full boot. A non-root user in the guest, so the
-network probe takes Landlock's port rule rather than the namespace. A kernel without Landlock as
+network probe takes Landlock's port rule rather than the namespace. TLS from inside the guest (the page would have to be a trusted CA to the guest, or relay raw TCP over a WebSocket to a server, which is a different trust model). A kernel without Landlock as
 the negative control. `memfd_secret`'s 32-bit caveat is untested (it is probed, not used).

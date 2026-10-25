@@ -16,6 +16,7 @@ const POLICIES = ["p0-hello-world", "p1-agent-session", "p2-tool-server", "p3-ne
                   "deny-all-example", "allow-https-example"];
 const PROMPT = /sharness:\/work# /g;
 const CSI = /\x1b\[[0-9;?]*[A-Za-z]/g;
+import { attachNetwatch } from "./netwatch.js";
 
 const CHIPS = {
   py: [
@@ -37,6 +38,11 @@ const CHIPS = {
     ["sharness-ai run --policy policies/p0-hello-world.json -- python3 -c \"bytearray(200 << 20)\"", "200 MiB over a 64 MiB cap"],
     ["sharness-ai run --policy policies/p0-hello-world.json -- sh -c 'echo $SHARNESS_AI_POLICY_HASH'", "the child knows its policy"],
     ["sharness-ai run --expect-hash sha256:0000 --policy policies/p0-hello-world.json -- true", "wrong hash: nothing runs"],
+    ["wget -q -O - http://sharness.ai/llms.txt | head -3", "through the page's fetch(), on the allowlist"],
+    ["wget -q -O - http://example.com/ | head -3", "not on the allowlist: 403 from the page"],
+    ["sharness-ai run --policy policies/p5-web-fetch.json -- wget -q -O - http://sharness.ai/llms.txt | head -1", "P5 allows 80: the request appears below"],
+    ["sharness-ai run --policy policies/p1-agent-session.json -- wget -q -O - -T 3 http://sharness.ai/llms.txt", "P1 allows 443 only: refused by the kernel, nothing below"],
+    ["wget -q -O - -T 5 https://sharness.ai/llms.txt", "port 443: refused by the page, which serves only HTTP"],
     ["dmesg | grep -i landlock", ""],
   ],
 };
@@ -91,6 +97,22 @@ const css = `
 .pg-hashes{font:.74rem/1.5 var(--mono,ui-monospace,monospace);border:1px solid var(--line2,#d0d7de);border-radius:8px;padding:.5rem .7rem;background:var(--panel,#f6f8fa);overflow-wrap:anywhere}
 .pg-hashes .ok{color:#1a7f37} .pg-hashes .bad{color:#cf222e}
 .pg-note{font:.78rem/1.45 var(--sans,system-ui);color:var(--dim,#59636e)}
+.nw{margin-top:.8rem;background:var(--panel,#fff);border:1px solid var(--line2,#d0d7de);border-radius:10px;overflow:hidden}
+.nw-bar{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;padding:.5rem .8rem;border-bottom:1px solid var(--line2,#d0d7de);font:.8rem var(--sans,system-ui);color:var(--fg,#1f2328)}
+.nw-bar b{font-size:.84rem}.nw-n{color:var(--dim,#59636e)}
+.nw-bar label{display:inline-flex;align-items:center;gap:.35rem}
+.nw-bar input[type=text]{font:.76rem var(--mono,ui-monospace,monospace);padding:.25rem .5rem;border:1px solid var(--line2,#d0d7de);border-radius:6px;min-width:14rem;background:var(--panel,#fff);color:var(--fg,#1f2328)}
+.nw-bar button{font:600 .74rem var(--sans,system-ui);border:1px solid var(--line2,#d0d7de);background:var(--panel,#f6f8fa);color:var(--fg,#1f2328);border-radius:6px;padding:.25rem .6rem;cursor:pointer;margin-left:auto}
+.nw-table{max-height:260px;overflow:auto}
+.nw table{width:100%;border-collapse:collapse;font:.74rem/1.4 var(--mono,ui-monospace,monospace)}
+.nw th{position:sticky;top:0;background:var(--panel2,#f6f8fa);text-align:left;padding:.35rem .6rem;font:600 .66rem var(--sans,system-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--dim,#59636e)}
+.nw td{padding:.3rem .6rem;border-top:1px solid var(--line,#eaeef2);vertical-align:top;color:var(--fg,#1f2328);max-width:28rem;overflow-wrap:anywhere}
+.nw td:first-child,.nw td:nth-child(2){white-space:nowrap}
+.nw tr{cursor:pointer}.nw tr:hover td{background:var(--panel2,#f6f8fa)}
+.nw .v{font:600 .68rem var(--sans,system-ui);border-radius:999px;padding:.1rem .5rem;white-space:nowrap}
+.nw .v.allowed{background:#dafbe1;color:#116329}.nw .v.blocked{background:#ffebe9;color:#a40e26}.nw .v.refused{background:#fff8c5;color:#7d4e00}
+.nw-detail{margin:0;padding:.6rem .8rem;border-top:1px solid var(--line2,#d0d7de);background:#0d1117;color:#e6edf3;font:.74rem/1.5 var(--mono,ui-monospace,monospace);white-space:pre-wrap;max-height:220px;overflow:auto}
+.nw-note{margin:0;padding:.5rem .8rem;font:.74rem/1.45 var(--sans,system-ui);color:var(--dim,#59636e);border-top:1px solid var(--line,#eaeef2)}
 `;
 document.head.append(Object.assign(document.createElement("style"), { textContent: css }));
 
@@ -110,7 +132,8 @@ ROOT.innerHTML = `
       <div class="pg-out" aria-live="polite"></div>
       <div class="pg-chips"></div>
       <div class="pg-in"><span>${m === "py" ? "pyodide:/work$" : "sharness:/work#"}</span><input type="text" spellcheck="false" autocomplete="off" aria-label="command"></div>
-    </div>`).join("")}
+    </div>
+    ${m === "linux" ? '<div id="pg-netwatch" hidden></div>' : ""}`).join("")}
   </div>
   <div class="pg-side">
     <label for="pg-pick">A Process Behaviour Policy</label>
@@ -282,7 +305,10 @@ async function bootLinux() {
       cmdline: "console=ttyS0,115200 rdinit=/init panic=5 tsc=unstable quiet sharness.mode=shell",
       memory_size: 512 * 1024 * 1024, vga_memory_size: 2 * 1024 * 1024,
       autostart: true, disable_keyboard: true, disable_mouse: true, disable_speaker: true,
+      net_device: { type: "virtio", relay_url: "fetch" },     // the guest's card; its packets become this page's fetch()
     });
+    const nw = document.getElementById("pg-netwatch"); nw.hidden = false;
+    linux.netwatch = attachNetwatch(linux.emulator, { mount: nw, allow: ["sharness.ai"] });
     const dec = new TextDecoder();
     linux.emulator.add_listener("serial0-output-byte", (b) => { const c = dec.decode(new Uint8Array([b]), { stream: true }); if (c) linuxFeed(c); });
     linux.emulator.add_listener("emulator-started", () => status("linux", "booting Linux 6.18 on an emulated i686 …", "busy"));
@@ -290,7 +316,7 @@ async function bootLinux() {
     await nextPrompt();
     clearInterval(tick);
     linux.ready = true;
-    status("linux", `Alpine 3.23 · Linux 6.18.58 i686 · Landlock on · up in ${((performance.now() - t0) / 1000).toFixed(0)} s · each command takes seconds: the CPU is emulated`, "ready");
+    status("linux", `Alpine 3.23 · Linux 6.18.58 i686 · Landlock on · on the page's network · up in ${((performance.now() - t0) / 1000).toFixed(0)} s · each command takes seconds: the CPU is emulated`, "ready");
     T.linux.input.focus();
   })());
 }
@@ -352,7 +378,7 @@ async function usePolicy() {
   else { write("py", `Boot Linux to run under it: ${cmd}\n`, "d"); }
 }
 
-window.sharnessPlayground = { pyRun: (l) => pyRun(l, true), linuxRun, bootLinux, startPy, hashEverywhere, usePolicy, state: { py, linux } };
+window.sharnessPlayground = { pyRun: (l) => pyRun(l, true), linuxRun, bootLinux, startPy, hashEverywhere, usePolicy, state: { py, linux }, netwatch: () => linux.netwatch };
 status("py", "not started: Pyodide is about 10 MB from cdn.jsdelivr.net", "");
 status("linux", "off: the guest is about 25 MB, then about 30 s of boot", "");
 loadPolicy();

@@ -110,7 +110,9 @@ a policy to a child: a Boundary for the child, a Setting for the process that ra
 script is standard library only and writes the initramfs itself; v86 is the one dependency, pinned,
 and only under `experiments/browser/`. The same folder carries a playground: `sharness-ai` typed into Pyodide (hash, check, translate;
 `run` and `hello` refuse, as they must with no kernel) and into a shell in the guest (everything,
-enforced). Details and the measured table: [browser/README.md](browser/README.md);
+enforced), with the guest on a network the page provides (its packets become the browser's `fetch()`)
+and an interceptor that decodes every frame and vetoes hosts outside an egress allowlist, so a
+kernel refusal (nothing leaves the process) and a page refusal (a 403 before any fetch) can be told apart. Details and the measured table: [browser/README.md](browser/README.md);
 the options not taken and what a browser never shows: [sharness.ai/code/browser](https://sharness.ai/code/browser/index.html).
 
 ## E10 policy translate

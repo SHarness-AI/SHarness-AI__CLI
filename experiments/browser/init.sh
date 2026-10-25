@@ -10,8 +10,19 @@ mount -t devtmpfs dev /dev 2>/dev/null
 mkdir -p /dev/pts /tmp /sys/fs/cgroup
 mount -t devpts devpts /dev/pts 2>/dev/null
 mount -t cgroup2 none /sys/fs/cgroup 2>/dev/null
+# The network: v86 gives the guest a virtio card when the page asks for one, and answers on the
+# fake subnet 192.168.86.0/24 as the router, the DNS and the gateway to the page's fetch().
+# Without a card (a runner with no network backend) the guest stays off the network, as before.
+net_up() {
+    for m in failover net_failover virtio_net; do insmod /lib/modules/$(uname -r)/$m.ko 2>/dev/null; done
+    [ -e /sys/class/net/eth0 ] || { echo "network     none: no card"; return 1; }
+    ifconfig eth0 192.168.86.100 netmask 255.255.255.0 up && route add default gw 192.168.86.1 eth0
+    echo "nameserver 192.168.86.1" > /etc/resolv.conf
+    echo "network     eth0 192.168.86.100/24 via 192.168.86.1: the page's fetch backend, which is also its DNS"
+}
 echo
 echo "SHARNESS-GUEST-UP $(uname -r) $(uname -m)"
+net_up
 echo "--- landlock in dmesg:"
 dmesg | grep -i landlock
 if grep -q 'sharness.mode=shell' /proc/cmdline; then
@@ -38,6 +49,12 @@ for port in (443, 80):
         print(port, 'refused:', errno.errorcode.get(e.errno, e.errno), e.strerror)"
 echo "--- E03 run under P2: write refused, read allowed"
 sharness-ai run --policy /work/policies/p2-tool-server.json -- sh -c 'touch /work/x 2>&1 || echo "write to /work refused"; echo "read allowed: $(ls /usr/bin | wc -l) entries in /usr/bin"'
+if [ -e /sys/class/net/eth0 ]; then
+echo "--- E03 network, through the page: no policy, then P1 (443 only), then P5 (80 and 443)"
+echo "no policy:  $(wget -q -O - -T 20 http://sharness.ai/llms.txt 2>&1 | head -1)"
+echo "P1:         $(sharness-ai run --policy /work/policies/p1-agent-session.json -- sh -c 'wget -q -O - -T 5 http://sharness.ai/llms.txt 2>&1 | head -1' 2>&1)"
+echo "P5:         $(sharness-ai run --policy /work/policies/p5-web-fetch.json -- sh -c 'wget -q -O - -T 20 http://sharness.ai/llms.txt 2>&1 | head -1' 2>&1)"
+fi
 echo "--- E02 the example policies: shape and hash, in one interpreter"
 python3 -I -c "
 import glob, sharness_ai.policy as P
