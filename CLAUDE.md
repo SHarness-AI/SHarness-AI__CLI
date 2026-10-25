@@ -25,3 +25,11 @@
 - **Coordination.** The board, the members, the updates and the guidance for every agent are on
   https://sharness.ai/admin/ ; `AGENTS.md` beside this file says how this repository joins in. Every
   commit carries an `Agent: <id>` trailer.
+- **Security.** The site's `/security/` section is the register: threat model, known and accepted
+  risks, every review's findings with dates. A fix lands with a test in `tests/unit/test_security.py`
+  that pins it; a risk that is not fixed lands in the register as accepted, with the reason. CI runs
+  `ruff check` (the `S` rules), `bandit -ll`, `zizmor`, `pip-audit`, `npm audit` and CodeQL. Every
+  action is pinned to a commit; every download in `experiments/browser/build_guest.py` is pinned by
+  sha256 and refused on mismatch. A row of a policy that cannot be enforced is a refusal, never a
+  warning. Say what is not covered (Unix sockets by path, the inherited environment, UDP) wherever
+  enforcement is described.

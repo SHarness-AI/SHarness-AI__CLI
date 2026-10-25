@@ -26,17 +26,29 @@ def cgroup_version():
     return 0
 
 
+def nproc_binds(euid=None) -> bool:
+    """Whether RLIMIT_NPROC binds this process. The kernel exempts uid 0 (and any process with
+    CAP_SYS_RESOURCE or CAP_SYS_ADMIN) from the check at fork, so as root the rlimit is set and
+    does nothing; only a pids cgroup caps a root child's process count. For every other uid it
+    counts that uid's processes machine-wide, not this tree's."""
+    return (os.geteuid() if euid is None else euid) != 0
+
+
 def rlimits(max_memory_mb=None, max_pids=None):
-    """Per-process caps on the calling process; inherited by exec and by children."""
-    applied = []
+    """Per-process caps on the calling process; inherited by exec and by children.
+    Returns (applied, gaps): what was set, and what was set but does not bind here."""
+    applied, gaps = [], []
     if max_memory_mb:
         n = max_memory_mb << 20
         resource.setrlimit(resource.RLIMIT_AS, (n, n))
         applied.append(f"RLIMIT_AS={max_memory_mb}MiB")
     if max_pids is not None:
         resource.setrlimit(resource.RLIMIT_NPROC, (max_pids, max_pids))
-        applied.append(f"RLIMIT_NPROC={max_pids}")
-    return applied
+        if nproc_binds():
+            applied.append(f"RLIMIT_NPROC={max_pids}")
+        else:
+            gaps.append(f"RLIMIT_NPROC={max_pids} set but not binding: the kernel exempts uid 0 from it")
+    return applied, gaps
 
 
 def _write(path, value):
@@ -55,7 +67,14 @@ def cgroup(pid, max_memory_mb=None, max_pids=None):
         if v == 2:
             d = f"{CG}/{NAME}/{pid}"
             os.makedirs(d, exist_ok=True)
-            # subtree_control is only needed when nesting below the root's children
+            # memory.max and pids.max exist in a child only once the parent has enabled the
+            # controllers in its cgroup.subtree_control; on a fresh mount (the E09 guest) the root
+            # has none enabled. Best effort at both levels; the writes below say whether it worked.
+            for parent in (CG, f"{CG}/{NAME}"):
+                try:
+                    _write(f"{parent}/cgroup.subtree_control", "+memory +pids")
+                except OSError:
+                    pass
             if max_memory_mb:
                 _write(f"{d}/memory.max", max_memory_mb << 20)
                 applied.append(f"cgroup2 memory.max={max_memory_mb}MiB")

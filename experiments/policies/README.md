@@ -30,6 +30,11 @@ skipped it. Only the launcher above the session makes P1 a Boundary for the agen
 is the design, not yet code. P3 and P4 are two processes of one workflow with different writes:
 the agent writes articles, sgit writes the vault, neither can do the other's job.
 
+`sharness-ai policy check` prints, after the hash, *advice*: what a well-formed policy still grants
+more of than its page suggests (a writable path beneath an executable one, `/tmp` shared with every
+process, `/etc` listed as executable, ports without hosts, the inherited environment). Advice is not
+a problem; the hash names the policy and does not judge it. The examples above all draw advice.
+
 What v0 cannot say yet, in order of the roadmap: **hosts** (ports only; the vault host and the
 model API are `sharness.net`'s allowlist), **UDP** (Landlock does not see it, so DNS resolves
 unless `network: "none"` gets its empty namespace), **uids and seccomp**, **signing** and
