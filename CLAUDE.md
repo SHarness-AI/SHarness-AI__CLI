@@ -22,3 +22,6 @@
   PyPI via Trusted Publishing. Do not bump the version by hand.
 - **Experiments.** Numbered in `experiments/README.md`; each says where it runs and what it
   does not show. New measurements go to the site's Evidence page with method and date.
+- **Coordination.** The board, the members, the updates and the guidance for every agent are on
+  https://sharness.ai/admin/ ; `AGENTS.md` beside this file says how this repository joins in. Every
+  commit carries an `Agent: <id>` trailer.
