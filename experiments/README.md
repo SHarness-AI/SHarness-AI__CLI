@@ -20,6 +20,8 @@ only. No experiment is a SHarness component.
 | E06 | the process-tree proof of concept: a mini orchestrator that cannot exec a shell, and a bash server outside its domain | Linux, root, following the [safety rules](https://sharness.ai/design/process-tree/index.html#4-safety-rules-for-testing-inside-a-live-agent-session) | planned |
 | E07 | `sharness.llm` as a Messages API pass-through with a secret filter on tool results, pointed at by `ANTHROPIC_BASE_URL` | any OS | planned |
 | E08 | `sharness.kms` v0: make an identity in-process, open a sealed `m1`, re-seal derived keys to a one-time key, never print a clear key | any OS with `cryptography` | planned |
+| E09 | the harness in a browser tab: a real 32-bit Linux kernel (v86 with Alpine's `linux-virt`, which ships Landlock) running `sharness-ai hello` on sharness.ai; a negative control on a kernel without Landlock | any browser; the build needs Docker | researched ([sharness.ai/code/browser](https://sharness.ai/code/browser/index.html)); not built |
+| E10 | `sharness-ai policy translate FILE --to bwrap\|docker\|claude-code\|kubernetes`: the same policy in another enforcer's form, with the list of what that target does not enforce | any OS (writes the form; does not run the target) | runnable; targets not run here |
 
 ## E01 probe
 
@@ -91,6 +93,32 @@ caveat      applied by this process to its own children: a Boundary for them, a 
 Exit 0 when every expectation held. `--json` for publishing the result on the Evidence page.
 The caveat is part of the result and is why it says *for one child process*: the memo's test
 is passed for the agent itself only when a launcher above the agent applies the policy.
+
+## E10 policy translate
+
+```
+$ sharness-ai policy translate experiments/policies/deny-all-example.json --to claude-code
+{
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "failIfUnavailable": true,
+    "filesystem": {"allowWrite": []},
+    "network": {"allowedDomains": [], "strictAllowlist": true}
+  }
+}
+
+# claude-code: not enforced from policy deny-all-example (sha256:ab1d3e4e7793…):
+#   - files.read: not an allowlist in the sandbox; it reads most of the machine unless paths are listed in filesystem.denyRead ...
+#   - files.exec: no equivalent; the sandbox has no execute allowlist
+#   - covers Bash, PowerShell and Monitor commands and their children only; ...
+#   - network none: expressed as an empty allowedDomains with strictAllowlist; ...
+#   - the policy hash: settings are read by the agent's own process (a Setting in ABP terms); ...
+```
+
+The policy is the centre; every enforcer is a target. The notes are the gap, which is the
+[enforceability matrix](https://sharness.ai/landscape/enforceability/index.html) made executable.
+Nothing is run against the target: `translate` writes the form, `run` enforces ours.
 
 ## Measured so far
 

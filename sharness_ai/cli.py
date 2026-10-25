@@ -6,6 +6,7 @@ experiments from the design, small enough to read in one sitting (experiments/RE
     probe                      E01  the grant: what a process here can do before any policy
     policy hash FILE           E02  the one value the person supplies: canonical JSON → sha256
     policy check FILE               the shape of a v0 policy
+    policy translate FILE --to T    E10  the same policy as bwrap, docker, claude-code, kubernetes; and the gap
     run --policy FILE -- CMD   E03  one command under a policy: Landlock + no network
     hello                      E04  the memo's acceptance test, for one child process
 """
@@ -33,6 +34,12 @@ def build_parser() -> argparse.ArgumentParser:
     ph.add_argument("file")
     pc = pol_sub.add_parser("check", help="check the shape of a v0 policy")
     pc.add_argument("file")
+    pt = pol_sub.add_parser("translate", help="E10: write the policy in another enforcer's form, with what it does not enforce")
+    pt.add_argument("file")
+    pt.add_argument("--to", required=True, choices=("bwrap", "docker", "claude-code", "kubernetes", "landlock"))
+    pt.add_argument("--notes", action="store_true", help="print only what the target does not enforce")
+    pt.add_argument("target_argv", nargs="*", metavar="CMD",
+                    help="after --: the command to wrap (for bwrap, docker, kubernetes, landlock)")
 
     r = sub.add_parser("run", help="E03: run one command under a policy (Linux, Landlock)")
     r.add_argument("--policy", required=True, help="the policy file (JSON)")
@@ -65,6 +72,21 @@ def main(argv=None) -> int:
             policy = load(args.file)
             if args.policy_cmd == "hash":
                 print(policy_hash(policy))
+                return 0
+            if args.policy_cmd == "translate":
+                from sharness_ai.translate import translate
+                problems = check(policy)
+                if problems:
+                    print(f"sharness-ai policy: {args.file} is not well-formed: " + "; ".join(problems), file=sys.stderr)
+                    return 1
+                cmd = args.target_argv
+                text, notes = translate(policy, args.to, tuple(cmd) if cmd else ("/bin/sh", "-c", "echo hello"))
+                if not args.notes:
+                    print(text)
+                    print()
+                print(f"# {args.to}: not enforced from policy {policy.get('id')} ({policy_hash(policy)[:19]}…):")
+                for n in notes:
+                    print(f"#   - {n}")
                 return 0
             problems = check(policy)
         except PolicyError as e:
