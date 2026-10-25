@@ -174,7 +174,7 @@ function submit(m, line) {
 }
 
 // ---- Pyodide ------------------------------------------------------------------------------
-const py = { pyodide: null, installed: false, loading: null, wheel: null };
+const py = { pyodide: null, ready: false, installed: false, loading: null, wheel: null };
 const PY_SH = `
 import io, contextlib, shlex, os
 def sh(line):
@@ -208,6 +208,7 @@ async function startPy() {
     py.pyodide.runPython("import os; os.chdir('/work')");
     status("py", `Pyodide ${py.pyodide.version} · Python ${pyv} · sharness-ai not installed yet`, "ready");
     $('[data-act=start]', T.py.box).hidden = true;
+    py.ready = true;
   })());
 }
 async function pyInstall() {
@@ -227,7 +228,7 @@ async function pyRun(line, echo) {
   if (show) write("py", `pyodide:/work$ ${line}\n`, "c");
   if (!line) return "";
   if (line === "clear") { T.py.out.textContent = ""; return ""; }
-  if (!py.pyodide) await startPy();
+  await startPy();                       // the whole start-up: Pyodide, the policies, cwd /work
   const words = line.split(/\s+/);
   let out = "", code = 0;
   if (/^pip3? install (sharness-ai|sharness_ai)$/.test(line)) {

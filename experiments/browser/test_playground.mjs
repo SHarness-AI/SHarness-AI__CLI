@@ -22,11 +22,13 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
 const errors = [];
 page.on("pageerror", e => errors.push(String(e)));
+// slow the policy files down, as a real network does: a command typed before start-up finishes must still work
+await page.route("**/policies/*.json", async (route) => { await new Promise(r => setTimeout(r, 1500)); await route.continue(); });
 const checks = [];
 const check = (name, ok, detail = "") => { checks.push([name, ok]); console.log(`${ok ? "✔" : "✗"} ${name}${detail ? "  " + detail : ""}`); };
 const t0 = Date.now(), secs = () => ((Date.now() - t0) / 1000).toFixed(1) + " s";
 await page.goto(process.env.PLAYGROUND_URL || `http://127.0.0.1:${server.address().port}/playground.html`);
-await page.waitForFunction(() => window.sharnessPlayground?.state.py.pyodide, null, { timeout: 300000 });
+await page.waitForFunction(() => window.sharnessPlayground?.state.py.pyodide, null, { timeout: 300000 });   // started, not finished: pyRun must wait for the rest
 check("Pyodide loaded", true, secs());
 const py = (line) => page.evaluate((l) => window.sharnessPlayground.pyRun(l), line);
 await py("pip install sharness-ai");
