@@ -38,6 +38,7 @@ PROBES = {
 EXPECT = {"read": "allowed", "write-tmp": "refused", "write-cwd": "refused", "net": "refused",
           "memory": "refused", "hash": "refused"}
 MAX_MEMORY_MB = 128
+REPORT_URL = "https://github.com/SHarness-AI/SHarness-AI__CLI/issues/new?template=hello-report.yml"
 
 
 def hello_policy(workspace=None) -> dict:
@@ -114,6 +115,7 @@ def hello(as_json=False) -> int:
             "landlock_abi": abi, "euid": os.geteuid(),
             "results": [{"probe": n, "expected": EXPECT[n], "got": g, "exit": rc} for n, g, rc in results],
             "held": len(held), "of": len(results),
+            "report": REPORT_URL,
         }, indent=1))
     else:
         print("sharness-ai hello   experiment E04: the memo's acceptance test, for one child process")
@@ -127,6 +129,7 @@ def hello(as_json=False) -> int:
             mark = "✔" if got.startswith(EXPECT[n]) else "✗"
             print(f"  {mark} {n:<10} expected {EXPECT[n]:<8} got {got}")
         print(f"result      {len(held)}/{len(results)} held")
+        print(f"report      run again with --json and paste it at {REPORT_URL}: every machine is a new row")
         print("caveat      applied by this process to its own children: a Boundary for them, a Setting for "
               "whoever ran this, who could have skipped it. The launcher that makes it a Boundary for the "
               "agent too is the design: https://sharness.ai/design/policies/index.html#2-who-enforces-decides-the-barrier-kind")

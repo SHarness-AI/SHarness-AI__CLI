@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">The one idea: a policy you can hash, a kernel that enforces it on the process, a launcher above the agent</title>
+  <desc id="d">Animated in four beats. One: a Process Behaviour Policy appears, a small JSON of files, network and process. Two: it is hashed to one SHA-256 value, the name the person supplies. Three: the kernel applies it to the agent's child process. Four: the child tries four things: reading the system is allowed; writing the workspace, connecting to port 80 and taking 200 MiB are refused by the kernel. The loop repeats.</desc>
+  <style>
+    .t{font-size:12px;fill:#34363c}.h{font-weight:700}.m{font-family:ui-monospace,Menlo,Consolas,monospace}.dim{fill:#8a8d94}
+    .b1{animation:fade 16s infinite}.b2{animation:fade 16s infinite 2.6s}.b3{animation:fade 16s infinite 5.2s}
+    .r1{animation:fade 16s infinite 8s}.r2{animation:fade 16s infinite 9.6s}.r3{animation:fade 16s infinite 11.2s}.r4{animation:fade 16s infinite 12.8s}
+    .hash{animation:hash 16s infinite 2.6s}
+    @keyframes fade{0%{opacity:0}4%{opacity:1}96%{opacity:1}100%{opacity:0}}
+    @keyframes hash{0%,2%{opacity:0}8%{opacity:1}96%{opacity:1}100%{opacity:0}}
+    @media(prefers-reduced-motion:reduce){.b1,.b2,.b3,.r1,.r2,.r3,.r4,.hash{animation:none;opacity:1}}
+  </style>
+  <rect width="960" height="400" fill="#faf9f5"/>
+  <text x="24" y="32" font-size="11.5" font-weight="700" letter-spacing="2" fill="#5c5f66">THE ONE IDEA</text>
+  <!-- beat 1: the policy -->
+  <g class="b1" opacity="0">
+    <rect x="24" y="52" width="256" height="238" rx="12" fill="#0d1117"/>
+    <text x="40" y="76" font-size="11" font-weight="700" letter-spacing="1.5" fill="#8b949e">A PROCESS BEHAVIOUR POLICY</text>
+    <g class="m" font-size="11.5" fill="#e6edf3">
+      <text x="40" y="100">{"id": "p1-agent-session",</text>
+      <text x="40" y="118"> "files": {</text>
+      <text x="40" y="136">  "read":  ["/usr", "/work"],</text>
+      <text x="40" y="154">  "write": ["/work", "/tmp"],</text>
+      <text x="40" y="172">  "exec":  ["/usr", "/lib"]},</text>
+      <text x="40" y="190"> "network": {"tcp": [443]},</text>
+      <text x="40" y="208"> "process": {"memory_mb": 64,</text>
+      <text x="40" y="226">   "no_new_privs": true}}</text>
+    </g>
+    <text x="40" y="262" font-size="11.5" fill="#8b949e">what one process may do:</text>
+    <text x="40" y="278" font-size="11.5" fill="#8b949e">files, network, resources. Nothing else.</text>
+  </g>
+  <!-- beat 2: the hash -->
+  <g class="b2" opacity="0">
+    <path d="M282 170 L296 170" stroke="#8a8d94" stroke-width="2"/><path d="M292 164 L302 170 L292 176" fill="none" stroke="#8a8d94" stroke-width="2"/>
+    <rect x="306" y="118" width="192" height="104" rx="12" fill="#ffffff" stroke="#0f766e" stroke-width="2"/>
+    <text x="318" y="142" class="t h" fill="#115e59">one hash, its name</text>
+    <text x="318" y="160" class="t dim" font-size="11">canonical JSON, SHA-256</text>
+    <text x="318" y="186" class="m hash" font-size="11" fill="#0f766e" opacity="0">sha256:e619092574cc31d0</text>
+    <text x="318" y="202" class="m hash" font-size="11" fill="#0f766e" opacity="0">0d190199c1b383b586f5f…</text>
+    <text x="302" y="248" class="t" font-size="11">The person supplies this value from</text>
+    <text x="302" y="264" class="t" font-size="11">outside the agent. Change one byte</text>
+    <text x="302" y="280" class="t" font-size="11">of the policy and it is a different name.</text>
+  </g>
+  <!-- beat 3: the kernel -->
+  <g class="b3" opacity="0">
+    <path d="M500 170 L534 170" stroke="#8a8d94" stroke-width="2"/><path d="M530 164 L540 170 L530 176" fill="none" stroke="#8a8d94" stroke-width="2"/>
+    <rect x="544" y="52" width="392" height="238" rx="12" fill="#ecfdf5" stroke="#0f766e" stroke-width="2"/>
+    <text x="560" y="76" class="t h" fill="#115e59">the Linux kernel, told before the process starts</text>
+    <text x="560" y="94" class="t dim" font-size="10.5">Landlock per path and port · a network namespace · rlimits · cgroups</text>
+    <rect x="560" y="108" width="360" height="40" rx="8" fill="#0f766e"/>
+    <text x="576" y="126" font-size="12" font-weight="700" fill="#ffffff">the agent's tool, running under the policy</text>
+    <text x="576" y="141" font-size="10.5" fill="#e6fffa">it cannot undo what the kernel was told; neither can anything it starts</text>
+  </g>
+  <!-- beat 4: four requests -->
+  <g font-size="12" class="m">
+    <g class="r1" opacity="0"><text x="560" y="172" fill="#34363c">read  /usr/lib/…</text><rect x="760" y="158" width="160" height="20" rx="10" fill="#0f766e"/><text x="840" y="172" fill="#ffffff" text-anchor="middle" font-size="11" font-weight="700">allowed</text></g>
+    <g class="r2" opacity="0"><text x="560" y="200" fill="#34363c">write /work/notes.md</text><rect x="760" y="186" width="160" height="20" rx="10" fill="#0f766e"/><text x="840" y="200" fill="#ffffff" text-anchor="middle" font-size="11" font-weight="700">allowed</text></g>
+    <g class="r3" opacity="0"><text x="560" y="228" fill="#34363c">connect 1.1.1.1:80</text><rect x="760" y="214" width="160" height="20" rx="10" fill="#b91c1c"/><text x="840" y="228" fill="#ffffff" text-anchor="middle" font-size="11" font-weight="700">EACCES · refused</text></g>
+    <g class="r4" opacity="0"><text x="560" y="256" fill="#34363c">allocate 200 MiB</text><rect x="760" y="242" width="160" height="20" rx="10" fill="#b91c1c"/><text x="840" y="256" fill="#ffffff" text-anchor="middle" font-size="11" font-weight="700">MemoryError · refused</text></g>
+    <text x="560" y="280" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#5c5f66" class="r4" opacity="0">a tricked agent asks for more; the kernel says no. The policy and its hash did not change.</text>
+  </g>
+  <!-- footer -->
+  <text x="24" y="330" class="t h" font-size="13" fill="#101114">a policy you can hash  +  a kernel that enforces it on the process  +  a launcher above the agent that starts only what the hash names</text>
+  <text x="24" y="352" class="t" font-size="11.5">The first two run today (<tspan class="m">sharness-ai run</tspan>, measured on three kernels). The third is the design: applied by a process to its own child,</text>
+  <text x="24" y="368" class="t" font-size="11.5">a policy is a Boundary for the child and only a Setting for the process, which could have skipped it.</text>
+  <text x="24" y="390" class="t dim" font-size="10.5">sharness.ai · the policy is P1, a coding agent's session, shortened · CC BY 4.0</text>
+</svg>
