@@ -29,3 +29,13 @@ class Test_no_kernel:
         text = probe.render(p)
         assert "None" not in text
         assert "no kernel here" in text
+
+
+class Test_hello_policy_paths:
+    def test_virtualenv_prefix_is_readable_and_executable(self):
+        """Python reads pyvenv.cfg from sys.prefix at start-up; without it every probe dies first."""
+        import os
+        p = hello.hello_policy()
+        for key in ("read", "exec"):
+            assert os.path.realpath(sys.prefix) in p["files"][key]
+            assert os.path.realpath(sys.base_prefix) in p["files"][key]

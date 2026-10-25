@@ -1,6 +1,7 @@
 """E03 and E04 under test. These need Linux with Landlock; elsewhere they are skipped, and
 the policy and probe tests still run."""
 import json
+from pathlib import Path
 import os
 import subprocess
 import sys
@@ -86,9 +87,13 @@ class Test_Run_Under_Landlock:
 class Test_Hello:
 
     def test_hello_json_holds(self, tmp_path):
+        # run from an empty directory with the checkout on PYTHONPATH, so the test does not depend on
+        # the package being installed (CI installs only pytest)
+        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[2]))
         r = subprocess.run([sys.executable, "-m", "sharness_ai", "hello", "--json"],
-                           cwd=tmp_path, capture_output=True, text=True, timeout=120)
+                           cwd=tmp_path, capture_output=True, text=True, timeout=120, env=env)
         assert r.returncode in (0, 1), r.stderr
+        assert r.stdout.strip(), f"hello printed nothing; stderr: {r.stderr}"
         data = json.loads(r.stdout)
         got = {x["probe"]: x["got"] for x in data["results"]}
         assert got["read"] == "allowed"

@@ -41,12 +41,14 @@ MAX_MEMORY_MB = 128
 
 
 def hello_policy(workspace=None) -> dict:
-    """Deny-all for this interpreter: the system and Python readable and executable, the
-    workspace readable, nothing writable, no network."""
+    """Deny-all for this interpreter: the system and Python (and its virtualenv, if any) readable
+    and executable, the workspace readable, nothing writable, no network."""
     ws = os.path.realpath(workspace or os.getcwd())
     py = os.path.realpath(sys.executable)
+    # sys.prefix is the virtualenv when there is one: Python reads its pyvenv.cfg at start-up,
+    # so without it the probe dies before it runs (same as base_prefix outside a virtualenv)
     prefixes = sorted({"/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/opt",
-                       os.path.realpath(sys.base_prefix), os.path.dirname(py)})
+                       os.path.realpath(sys.base_prefix), os.path.realpath(sys.prefix), os.path.dirname(py)})
     return {
         "pbp": 1,
         "id": "hello",
@@ -118,9 +120,9 @@ def hello(as_json=False) -> int:
         print(f"policy      {policy['id']}  {h}")
         print(f"            read-only: {', '.join(policy['files']['read'])}")
         print(f"            write: none · exec: system and Python · network: none · memory: {MAX_MEMORY_MB} MiB")
-        print(f"kernel      Landlock ABI {abi or 'none'} · empty network namespace: "
-              f"{'yes (uid 0)' if netns_possible else 'only if an unprivileged user namespace is allowed; '
-                                                     'else Landlock denies TCP (not UDP)'}")
+        netns = ("yes (uid 0)" if netns_possible else
+                 "only if an unprivileged user namespace is allowed; else Landlock denies TCP (not UDP)")
+        print(f"kernel      Landlock ABI {abi or 'none'} · empty network namespace: {netns}")
         for n, got, _ in results:
             mark = "✔" if got.startswith(EXPECT[n]) else "✗"
             print(f"  {mark} {n:<10} expected {EXPECT[n]:<8} got {got}")

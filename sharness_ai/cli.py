@@ -54,7 +54,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv=None) -> int:
     parser = build_parser()
+    argv = list(sys.argv[1:] if argv is None else argv)
+    target = None
+    if argv[:2] == ["policy", "translate"] and "--" in argv:
+        # split off the wrapped command ourselves: argparse before 3.12 rejects `-- CMD` after an option
+        i = argv.index("--")
+        argv, target = argv[:i], argv[i + 1:]
     args = parser.parse_args(argv)
+    if target is not None:
+        args.target_argv = target
     if args.cmd is None:
         parser.print_help()
         return 0
