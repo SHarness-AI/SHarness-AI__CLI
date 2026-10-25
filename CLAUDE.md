@@ -8,7 +8,8 @@
 - **Threat model.** The kernel is trusted; root and kernel compromise are out of scope. Never
   claim protection against them. A policy a process applies to its own children is a Boundary
   for them and a Setting for itself: say which, every time.
-- **Code.** Standard library only (no runtime dependencies). Each module small enough to read
+- **Code.** Standard library only (no runtime dependencies; `experiments/browser/` pins v86 for E09's
+  emulated guest, a test bench, not part of the package). Each module small enough to read
   in one sitting; the design's targets are launcher ≤ 400 lines, component ≤ 300. Python 3.11+.
   Reuse Linux and Python before building: Landlock, namespaces, seccomp, cgroups, `ssl`.
 - **Tests.** `python -m pytest tests/unit`. Classes `Test_*`, functions `test_*`. Tests that

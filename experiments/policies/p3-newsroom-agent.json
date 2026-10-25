@@ -1,0 +1,9 @@
+{
+ "pbp": 1,
+ "id": "p3-newsroom-agent",
+ "layer": "component",
+ "notes": "P3, the newsroom agent of the sgit.ai sites: read the system and a vault checkout at /work/vault, write its output under /work/out only, run the system, TCP connect to port 443 (the vault host and the model API; which hosts is sharness.net's job), 1 GiB, 64 processes. The vault checkout is read-only to the agent: committing is sgit's policy (P4), a different process.",
+ "files": {"read": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/work/vault", "/work/out"], "write": ["/work/out"], "exec": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc"]},
+ "network": {"connect_tcp_ports": [443]},
+ "process": {"no_new_privs": true, "max_memory_mb": 1024, "max_pids": 64}
+}

@@ -1,0 +1,9 @@
+{
+ "pbp": 1,
+ "id": "p2-tool-server",
+ "layer": "component",
+ "notes": "P2, a tool or MCP server on stdio: read the system and the workspace at /work, write nothing, run the system, no network, 512 MiB, 16 processes. Its results go back over stdio to whoever started it; a tool that must reach one service gets its own policy with that port. Under P1 this is a Boundary the agent's session applies to its tools and a Setting for the session itself.",
+ "files": {"read": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/work"], "write": [], "exec": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc"]},
+ "network": "none",
+ "process": {"no_new_privs": true, "max_memory_mb": 512, "max_pids": 16}
+}

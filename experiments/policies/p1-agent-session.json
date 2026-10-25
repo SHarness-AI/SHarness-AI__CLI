@@ -1,0 +1,9 @@
+{
+ "pbp": 1,
+ "id": "p1-agent-session",
+ "layer": "session",
+ "notes": "P1, a coding agent's session (a Claude Code session, an orchestrator): read the system, read and write the workspace at /work and /tmp, run the system only (the workspace is writable, never executable: scripts run as 'python3 /work/x.py', never './x.sh'), TCP connect to port 443 only, 4 GiB, 512 processes. v0 says ports, not names: the model API and the package registries are 443, and which hosts is sharness.net's allowlist, not yet here.",
+ "files": {"read": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/work", "/tmp"], "write": ["/work", "/tmp"], "exec": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc"]},
+ "network": {"connect_tcp_ports": [443]},
+ "process": {"no_new_privs": true, "max_memory_mb": 4096, "max_pids": 512}
+}
