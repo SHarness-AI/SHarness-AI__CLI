@@ -1,6 +1,7 @@
 // The playground, driven end to end in headless Chromium: Pyodide installs the dev wheel and
 // runs the policy commands; the Linux guest boots to a shell and enforces; three hashes agree.
 //   node experiments/browser/test_playground.mjs [out-dir]      (PLAYWRIGHT=… as for boot_browser)
+//   PLAYGROUND_URL=https://sharness.ai/code/playground/index.html node …   (test a published copy)
 // Needs network for Pyodide (cdn.jsdelivr.net). Exit 0 when every check held.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -24,7 +25,7 @@ page.on("pageerror", e => errors.push(String(e)));
 const checks = [];
 const check = (name, ok, detail = "") => { checks.push([name, ok]); console.log(`${ok ? "✔" : "✗"} ${name}${detail ? "  " + detail : ""}`); };
 const t0 = Date.now(), secs = () => ((Date.now() - t0) / 1000).toFixed(1) + " s";
-await page.goto(`http://127.0.0.1:${server.address().port}/playground.html`);
+await page.goto(process.env.PLAYGROUND_URL || `http://127.0.0.1:${server.address().port}/playground.html`);
 await page.waitForFunction(() => window.sharnessPlayground?.state.py.pyodide, null, { timeout: 300000 });
 check("Pyodide loaded", true, secs());
 const py = (line) => page.evaluate((l) => window.sharnessPlayground.pyRun(l), line);
