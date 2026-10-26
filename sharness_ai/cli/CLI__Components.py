@@ -24,7 +24,9 @@ COMPONENTS = {
                  ("GET /v0/policy on every component",)),
 }
 ORDER = ("bash", "net", "kms", "fs", "llm", "launcher", "policy")
-RUNNABLE = {"fs": "runnable: sharness.fs.disk and sharness.fs.disk.twin (sharness-ai fs serve); a Setting for the app until the launcher"}
+RUNNABLE = {"fs": "runnable: sharness.fs.disk and sharness.fs.disk.twin (sharness-ai fs serve); a Setting for the app until the launcher",
+            "net": "runnable: sharness.net.proxy (sharness-ai net serve): CONNECT and HTTP for one uid under a host allowlist; TLS is not terminated",
+            "launcher": "runnable, the first slice: sharness-ai shell (a unique uid, the net door for it, a live page); not yet the launcher of the design"}
 
 # WYSIWYG template: every placeholder is one character wide, so the columns line up as shown.
 # { ┌  } ┐  [ └  ] ┘  < ├  > ┤  ~ ┬  = ┴  | │  - ─
@@ -91,14 +93,14 @@ class CLI__Components:
             lines += d.kv("page", f"{SITE}/{selected}/index.html")
             if selected in RUNNABLE:
                 lines += d.kv("status", RUNNABLE[selected], style="ok")
-                lines += d.kv("next", "sharness-ai session new; sharness-ai fs serve --target disk.twin; sharness-ai door conformance sharness.fs.disk.twin", style="head")
+                lines += d.kv("next", "sharness-ai shell --workspace . --sites github.com   everything that runs, together", style="head")
             else:
                 lines += d.kv("status", "designed, not built. This verb exists so that the shape is visible; it exits 69 "
                                         "(unavailable) until the component is runnable", style="warn")
         else:
             for k in ORDER:
-                lines += d.kv(f"sharness.{k}", COMPONENTS[k][0] + (f"  {t.mark('ok')} runnable (disk, disk.twin)" if k in RUNNABLE else ""))
-            lines += d.kv("status", f"fs runs (a Setting until the launcher); the other six: designed, not built {t.glyph('dot')} {SITE}/", style="warn")
+                lines += d.kv(f"sharness.{k}", COMPONENTS[k][0] + (f"  {t.mark('ok')} runnable" if k in RUNNABLE else ""))
+            lines += d.kv("status", f"fs, net and a first slice of the launcher run (sharness-ai shell); kms, llm, bash and the manifest: designed, not built {t.glyph('dot')} {SITE}/", style="warn")
             lines += d.kv("today", "the experiments are what runs: probe, policy, run, hello, translate", style="dim")
             lines += d.kv("next", "sharness-ai components net   one component in detail; sharness-ai hello   what runs today",
                           style="head")

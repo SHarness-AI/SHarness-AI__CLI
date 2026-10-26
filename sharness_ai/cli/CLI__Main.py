@@ -8,7 +8,8 @@ its `cmd_*` method with set_defaults(func=...), so there is no `if` ladder here.
     contain | profile | explain         the levels: a sentence (5), a role (4), any document drawn down (all)
     help [--format json]                the command surface, from the parser itself
     components [NAME] · bash net kms llm launcher    the map; verbs that say "not built" (exit 69)
-    session · fs · door                 E05 and the first door: sharness.fs.disk and its twin
+    session · fs · net · door           E05 and the doors: sharness.fs.disk and its twin, sharness.net.proxy
+    shell                               a shell under the harness: a unique uid, the proxy as its only port, a live page
 """
 import argparse
 import sys
@@ -21,11 +22,13 @@ from sharness_ai.cli.CLI__Fs import DEFAULT_PORT, CLI__Fs
 from sharness_ai.cli.CLI__Guide import CLI__Guide
 from sharness_ai.cli.CLI__Hello import CLI__Hello
 from sharness_ai.cli.CLI__Level import CLI__Level
+from sharness_ai.cli.CLI__Net import DEFAULT_PORT as NET_PORT, DEFAULT_PROXY_PORT, CLI__Net
 from sharness_ai.cli.CLI__Policy import CLI__Policy
 from sharness_ai.cli.CLI__Probe import CLI__Probe
 from sharness_ai.cli.CLI__Reference import CLI__Reference
 from sharness_ai.cli.CLI__Run import CLI__Run
 from sharness_ai.cli.CLI__Session import CLI__Session
+from sharness_ai.cli.CLI__Shell import CLI__Shell
 from sharness_ai.cli.CLI__State import CLI__State
 from sharness_ai.door.Session import Session
 from sharness_ai.ui import Draw, Prompt, Term, Trace
@@ -55,6 +58,8 @@ class CLI__Main:
         self.session = CLI__Session(self)
         self.fs = CLI__Fs(self)
         self.door = CLI__Door(self)
+        self.net = CLI__Net(self)
+        self.shell = CLI__Shell(self)
 
     # ---- the parser -----------------------------------------------------------------------------
     def build_parser(self) -> argparse.ArgumentParser:
@@ -100,7 +105,7 @@ class CLI__Main:
         ex.add_argument("file")
         ex.set_defaults(func=self.level.cmd_explain)
 
-        dr = sub.add_parser("doctor", help="can a policy hold here? eight checks in order, each with what to do about it")
+        dr = sub.add_parser("doctor", help="can a policy hold here? nine checks in order, each with what to do about it")
         dr.add_argument("--json", action="store_true", default=S)
         dr.set_defaults(func=self.doctor.cmd_doctor)
 
@@ -166,7 +171,7 @@ class CLI__Main:
         c.add_argument("name", nargs="?", choices=ORDER, help="one component in detail (exits 69 when not built)")
         c.set_defaults(func=self.components.cmd_components)
         for name in ORDER[:-1]:
-            if name == "fs":
+            if name in ("fs", "net", "launcher"):
                 continue
             v = sub.add_parser(name, help=f"sharness.{name}: designed, not built; the map and the proposed surface (exit 69)")
             v.set_defaults(func=self.components.cmd_components, name=name)
@@ -208,6 +213,42 @@ class CLI__Main:
             common(x)
             x.set_defaults(func=fn)
         fs.set_defaults(func=self.components.cmd_components, name="fs")
+
+        nt = sub.add_parser("net", help="sharness.net, the only network client: serve the proxy door, or call it")
+        nts = nt.add_subparsers(dest="net_cmd", metavar="action")
+        x = nts.add_parser("serve", help="run the door and its proxy")
+        x.add_argument("--hosts", nargs="*", help="host names allowed (exact, or *.suffix)")
+        x.add_argument("--ports", nargs="*", type=int, help="ports allowed (default 443 80)")
+        x.add_argument("--uid", type=int, help="answer this uid only (default: any local uid)")
+        x.add_argument("--proxy-port", type=int, default=DEFAULT_PROXY_PORT, dest="proxy_port")
+        x.add_argument("--audit", action="store_true", help="one JSON line per request on stderr")
+        x.add_argument("--once", action="store_true", help="start, print, stop (for tests)")
+        x.add_argument("--session", default=Session.default_dir())
+        x.add_argument("--port", type=int, default=NET_PORT)
+        x.set_defaults(func=self.net.cmd_serve)
+        for name, fn in (("hello", self.net.cmd_hello), ("log", self.net.cmd_log)):
+            x = nts.add_parser(name, help=f"{name} from the door")
+            x.add_argument("--session", default=Session.default_dir())
+            x.add_argument("--port", type=int, default=NET_PORT)
+            x.set_defaults(func=fn)
+        nt.set_defaults(func=self.components.cmd_components, name="net")
+
+        sh = sub.add_parser("shell", help="an interactive shell under the harness: a unique uid, one port to the proxy door, a live page")
+        sh.add_argument("--workspace", default=".", help="the folder the shell may write (default: here)")
+        sh.add_argument("--sites", nargs="*", help="host names the shell may reach, through sharness.net.proxy")
+        sh.add_argument("--profile", default="coding-agent")
+        sh.add_argument("--agent", help="a name for the shell (default: shell)")
+        sh.add_argument("--memory-mb", type=int, dest="memory_mb")
+        sh.add_argument("--pids", type=int)
+        sh.add_argument("--user", dest="user", action="store_true", default=None, help="a unique uid (default when root)")
+        sh.add_argument("--no-user", dest="user", action="store_false", help="this uid: a Setting")
+        sh.add_argument("--keep-user", action="store_true", help="do not remove the uid on exit")
+        sh.add_argument("--no-ui", action="store_true", help="no live page")
+        sh.add_argument("argv", nargs=argparse.REMAINDER, help="-- the command (default: your shell)")
+        sh.set_defaults(func=self.shell.cmd_shell)
+
+        la = sub.add_parser("launcher", help="sharness.launcher: the first slice is `sharness-ai shell`; the map and status")
+        la.set_defaults(func=self.components.cmd_components, name="launcher")
 
         dr2 = sub.add_parser("door", help="the door kit: conformance of a door against its vectors")
         drs = dr2.add_subparsers(dest="door_cmd", metavar="action")

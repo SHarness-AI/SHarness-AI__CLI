@@ -8,13 +8,14 @@ import time
 from sharness_ai.cli.doctor.Check__Kernel import Check__Kernel
 from sharness_ai.cli.doctor.Check__Landlock import Check__Landlock_Files, Check__Landlock_Net
 from sharness_ai.cli.doctor.Check__Limits import Check__Cgroups, Check__Process_Count
+from sharness_ai.cli.doctor.Check__Doors import Check__Doors
 from sharness_ai.cli.doctor.Check__Namespace import Check__Network_Namespace
 from sharness_ai.cli.doctor.Check__Openssl import Check__Openssl
 from sharness_ai.cli.doctor.Check__Result import FAIL, PASS, SKIP, WARN, Check__Result
 from sharness_ai.cli.doctor.Check__Write_Probe import Check__Write_Probe
 
 CHECKS = (Check__Kernel, Check__Landlock_Files, Check__Landlock_Net, Check__Network_Namespace,
-          Check__Cgroups, Check__Process_Count, Check__Write_Probe, Check__Openssl)
+          Check__Cgroups, Check__Process_Count, Check__Write_Probe, Check__Openssl, Check__Doors)
 MARK = {PASS: "ok", WARN: "warn", FAIL: "no", SKIP: "todo"}
 VERDICT = {PASS: ("healthy", "a policy will hold here as written", "ok"),
            WARN: ("degraded", "a policy will hold here with the gaps named above", "warn"),
@@ -63,7 +64,7 @@ class CLI__Doctor:
                               "checks": [r.as_dict() for r in results],
                               "at": time.strftime("%Y-%m-%dT%H:%MZ", time.gmtime())}, indent=1))
             return EXIT[overall]
-        lines = d.head("doctor", "can a policy hold here? eight checks, each with what to do about it")
+        lines = d.head("doctor", "can a policy hold here? nine checks, each with what to do about it")
         lines.append("")
         total = len(results)
         for i, r in enumerate(results, 1):

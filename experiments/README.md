@@ -23,6 +23,7 @@ only. No experiment is a SHarness component.
 | E09 | the harness under a second kernel: Alpine 3.23 x86 with Alpine's `linux-virt` (Landlock on) booted by v86 in Node and in a browser tab, running `probe`, `hello`, `run` and the example policies; the same i386 rootfs run through chroot on the host kernel ([browser/](browser/README.md)) | Node 18+; any browser; Linux root for the chroot form | runnable, measured 25 Oct 2026 (6 of 6 in all three forms) |
 | E11 | `sharness-ai fs serve` + `door conformance`: the first door, `sharness.fs.disk` and `.disk.twin`, 18 vectors; the Boundary demo: an app under Landlock writes only through the door (`tests/unit/fs/`) | Linux with Landlock for the demo; any OS with `openssl` for the twin | runnable, measured 26 Oct 2026 |
 | E12 | `sharness-ai contain`, `profile`, `explain`: the levels 5, 4, 3 compiled to the v0 policy, 23 accept and 15 refuse vectors | any OS | runnable, 26 Oct 2026 |
+| E13 | `sharness-ai net serve` and `sharness-ai shell`: the network door (a proxy for one uid under a host allowlist, SNI checked) and the launcher's first slice (a unique uid, the proxy as the shell's only port, a live page of traffic, processes and refusals) | Linux with Landlock; root for the unique uid | runnable, measured 26 Oct 2026 |
 | E10 | `sharness-ai policy translate FILE --to bwrap\|docker\|claude-code\|kubernetes`: the same policy in another enforcer's form, with the list of what that target does not enforce | any OS (writes the form; does not run the target) | runnable; targets not run here |
 
 ## E01 probe

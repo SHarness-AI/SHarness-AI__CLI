@@ -11,7 +11,7 @@ from sharness_ai.probe import probe
 
 MENU = (("1", "probe", ["probe"]), ("2", "hello", ["hello"]), ("3", "new policy", ["policy", "new"]),
         ("4", "run a command", None), ("5", "translate", None), ("6", "components", ["components"]),
-        ("7", "doctor", ["doctor"]), ("8", "contain (a sentence)", None), ("q", "quit", None))
+        ("7", "doctor", ["doctor"]), ("8", "contain (a sentence)", None), ("9", "shell (under the harness)", None), ("q", "quit", None))
 MAX_SCAN = 40
 
 
@@ -49,6 +49,8 @@ class CLI__Guide:
              else "one sentence: sharness-ai contain --workspace . --sites github.com -- CMD; or policy new"),
             (bool(run), 4, "run", f"last: {run['id']} exit {run['exit']} on {run['at']}" if run
              else "your command under it: sharness-ai run --policy FILE -- CMD"),
+            (bool(s.get("door")), 5, "shell", "a shell under the harness: sharness-ai shell --workspace . --sites github.com"
+             + (f"   (last door: {s.get('door').get('name')})" if s.get("door") else "")),
         ]
 
     def screen(self) -> list:
@@ -85,6 +87,9 @@ class CLI__Guide:
                     path = self.main.prompt.ask("which policy file?", default=self._policy_here()[0] or "policy.json")
                     cmd = self.main.prompt.ask("which command?", default="sh -c 'echo hello from under a policy'")
                     return ["run", "--policy", path, "--", "sh", "-c", cmd] if " " in cmd else ["run", "--policy", path, "--", cmd]
+                if key == "9":
+                    sites = self.main.prompt.ask("which sites may the shell reach?", default="github.com")
+                    return ["shell", "--workspace", ".", "--sites", *sites.split()]
                 if key == "8":
                     sites = self.main.prompt.ask("which sites may it reach?", default="github.com")
                     cmd = self.main.prompt.ask("which command?", default="sh -c 'echo hello from under a sentence'")

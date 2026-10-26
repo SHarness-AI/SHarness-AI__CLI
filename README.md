@@ -119,6 +119,8 @@ experiments and storyboards is [sharness.ai/code/experiments](https://sharness.a
 | `sharness-ai session new --roles app fs` | E05 | a session CA and one identity per role, issued by `openssl` (P-256, TLS 1.3, SAN URI `spiffe://<session>/<role>`), the CA key destroyed; what every door and every caller loads. No Python dependency |
 | `sharness-ai fs serve --target disk\|disk.twin --root DIR`, `fs hello\|put\|append\|get\|rm\|ls\|log` | the first door | `sharness.fs`, the only writer, as a loopback service under mutual TLS: the caller's role read from its certificate, the edge checked both ways, every request matched against `ACCEPTS.json`, then the rows (`within_root` and `refuse_secrets` always; `max_bytes`, `append_only` per path), one audit line per request. `disk` is the local disk; `disk.twin` the same face over memory |
 | `sharness-ai door conformance sharness.fs.disk.twin\|sharness.fs.disk` | | the door's 18 vectors against a fresh instance, the twin first, then the disk; exit 0 only when every vector held |
+| `sharness-ai net serve --hosts github.com pypi.org`, `net hello\|log` | the second door | `sharness.net.proxy`: an HTTP proxy on loopback for one uid under a host allowlist (exact or `*.suffix`), ports 443 and 80, IP literals refused, a tunnel whose TLS hello names another host cut, one audit line per request. Point any program's `HTTPS_PROXY` at it and watch the verdicts |
+| `sharness-ai shell --workspace . --sites github.com [-- CMD]` | the launcher's first slice | an interactive shell under the harness: a unique system uid where the launcher is root, the net door started for that uid, the shell's policy compiled from the sentence with the proxy's port as its **only** network row (the kernel holds the port, `sharness.net` holds the hosts, so the host allowlist is a Boundary for the shell), `HTTPS_PROXY` set, a live page on loopback showing traffic, processes and every refusal as they happen, the user removed on exit |
 | `sharness-ai doctor` | | can a policy hold here? Seven checks in order (kernel, Landlock files, Landlock TCP, network namespace, cgroups, process count, a real write refused under a deny-write policy), each pass, warn, fail or skip with what to do about it; a fatal failure skips the rest; `--json` is the report. Exit 0 healthy or degraded, 1 failed |
 | `sharness-ai help [--format json]` | | every command, read from the parser itself, so no page can describe a flag that does not exist; the JSON is what the site's CLI page is written from |
 
@@ -196,6 +198,29 @@ The code shape is the brief's: every door, target, twin and level is a folder wi
 `sharness_ai/fs/disk/`, `sharness_ai/fs/disk/twin/`, `sharness_ai/level/l{3,4,5}/`), replaceable by an
 implementation in another language that speaks the same accepts and emits. Standard library only;
 `openssl` is a program on the machine, not a package.
+
+## A shell under the harness
+
+```
+$ sharness-ai shell --workspace ./work --sites sharness.ai
+  who             uid 996 (sharness-d6e2fe, made for this shell, removed on exit)
+  network         only 127.0.0.1:32883, sharness.net.proxy · hosts sharness.ai · HTTPS_PROXY set
+  held            ✔ files, the port and the caps by the kernel · ✔ the host names by sharness.net (a Boundary for the shell)
+  live page       http://127.0.0.1:41753/<token>/
+── sh starts ──
+$ curl -sI https://sharness.ai | head -1        → HTTP/2 200         (through the proxy, allowed)
+$ curl -sI https://example.com                  → 403 from sharness.net.proxy: not on the allowlist
+$ curl --noproxy '*' https://sharness.ai        → refused by the kernel: the only port is the proxy's
+$ touch /etc/x                                  → Permission denied (Landlock)
+── sh exit 0 ──
+  summary         2 requests through sharness.net: 1 allowed, 1 refused; hosts reached: sharness.ai
+```
+
+Measured 26 Oct 2026 on this kernel (Linux 6.18, Landlock ABI 7, root): exactly that, and the live page in
+headless Chromium showed the three requests with their verdicts, the shell's three processes and the two
+refusals with who made them. Not on the page yet: the kernel's own refusals (Landlock audit is the next step);
+the shell sees them as `EACCES`. DNS: a program that resolves names itself speaks UDP the kernel does not see;
+clients that honour `HTTPS_PROXY` resolve nothing.
 
 ## Security
 

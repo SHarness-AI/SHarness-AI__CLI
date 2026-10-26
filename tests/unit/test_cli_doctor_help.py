@@ -10,7 +10,7 @@ from sharness_ai.cli import CLI__Main
 from sharness_ai.cli.doctor.Check__Result import FAIL, PASS, SKIP, WARN, Check__Result
 from sharness_ai.ui import Prompt, Term
 
-TOP_LEVEL = {"guide", "doctor", "help", "probe", "policy", "run", "hello", "components", "contain", "profile", "explain", "session", "door",
+TOP_LEVEL = {"guide", "doctor", "help", "probe", "policy", "run", "hello", "components", "contain", "profile", "explain", "session", "door", "shell",
              "bash", "net", "kms", "fs", "llm", "launcher"}
 
 
@@ -28,8 +28,8 @@ class Test_Doctor:
     def test_seven_checks_in_order_and_a_verdict(self, state, capsys):
         code = cli().run(["doctor"])
         out = capsys.readouterr().out
-        for n in ("[1/8]", "kernel", "landlock_files", "landlock_tcp", "network_namespace", "cgroups", "max_pids",
-                  "write_probe", "openssl", "[8/8]", "overall"):
+        for n in ("[1/9]", "kernel", "landlock_files", "landlock_tcp", "network_namespace", "cgroups", "max_pids",
+                  "write_probe", "openssl", "doors", "[9/9]", "overall"):
             assert n in out, n
         assert code in (0, 1)
         if landlock.abi() >= 1:
@@ -38,7 +38,7 @@ class Test_Doctor:
     def test_json_report(self, state, capsys):
         cli().run(["--json", "doctor"])
         r = json.loads(capsys.readouterr().out)
-        assert r["schema"] == "sharness-ai.doctor/v0" and len(r["checks"]) == 8
+        assert r["schema"] == "sharness-ai.doctor/v0" and len(r["checks"]) == 9
         assert r["overall"] in (PASS, WARN, FAIL)
         assert all(c["status"] in (PASS, WARN, FAIL, SKIP) for c in r["checks"])
 

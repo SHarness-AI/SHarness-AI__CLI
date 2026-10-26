@@ -138,9 +138,10 @@ class Test_Components:
             assert s in out, s
 
     def test_a_verb_shows_the_surface_and_exits_unavailable(self, state, capsys):
-        assert cli().run(["net"]) == EXIT_NOT_BUILT
+        assert cli().run(["kms"]) == EXIT_NOT_BUILT
         out = capsys.readouterr().out
-        assert "+- NET" in out and "POST /v0/fetch" in out and "exits 69" in out
+        assert "+- KMS" in out and "POST /v0/unwrap" in out and "exits 69" in out
+        assert cli().run(["net"]) == 0 and "runnable" in capsys.readouterr().out
         assert cli().run(["components", "kms"]) == EXIT_NOT_BUILT
         assert cli().run(["components", "fs"]) == 0 and "runnable" in capsys.readouterr().out
 
