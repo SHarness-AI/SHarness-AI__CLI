@@ -2,6 +2,7 @@
 certificate, the edge checked, the contract matched, then `handle()` (the door's own rows), one
 audit line per request. Subclasses set `role`, give a Contract and implement handle()."""
 import json
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -55,9 +56,26 @@ class Door:
         class Handler(BaseHTTPRequestHandler):
             protocol_version = "HTTP/1.0"                 # one connection per request, as the design says
             server_version = "sharness-ai"
+            timeout = 30                                  # a caller that stalls does not hold a thread for ever
+
+            def _answer(self, v):
+                out = json.dumps(v.payload()).encode()
+                self.send_response(v.status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(out)))
+                self.end_headers()
+                self.wfile.write(out)
 
             def _do(self):
-                n = int(self.headers.get("Content-Length") or 0)
+                try:
+                    n = int(self.headers.get("Content-Length") or 0)
+                    if n < 0:
+                        raise ValueError
+                except ValueError:
+                    v = Verdict.refuse("Content-Length is not a number", status=400)
+                    door.audit.record(peer_role(self.connection), self.command, self.path, 0, v)
+                    self._answer(v)
+                    return
                 if n > MAX_BODY:
                     v = Verdict.refuse(f"body over {MAX_BODY} bytes", status=413)
                     body = b""
@@ -66,12 +84,7 @@ class Door:
                     peer = peer_role(self.connection)
                     v = door.dispatch(peer, self.command, self.path, body)
                 door.audit.record(peer_role(self.connection), self.command, self.path, n, v)
-                out = json.dumps(v.payload()).encode()
-                self.send_response(v.status)
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Content-Length", str(len(out)))
-                self.end_headers()
-                self.wfile.write(out)
+                self._answer(v)
 
             do_GET = do_PUT = do_POST = do_DELETE = _do
 
@@ -82,7 +95,6 @@ class Door:
             daemon_threads = True
 
             def handle_error(self, request, client_address):   # a peer that hangs up, a bad TLS hello: logged, not a traceback
-                import sys
                 e = sys.exc_info()[1]
                 door.audit.record("?", "-", "-", 0, Verdict.refuse(f"connection error: {type(e).__name__}", status=0))
 

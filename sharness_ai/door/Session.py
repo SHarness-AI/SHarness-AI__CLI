@@ -49,27 +49,34 @@ class Session:
         for r in roles:
             if r not in ROLES:
                 raise SessionError(f"unknown role {r!r}; the roles are {', '.join(ROLES)}")
+        if not 1 <= days <= 3650:
+            raise SessionError("days must be 1 to 3650")
         ssl_bin = openssl()
         os.makedirs(directory, mode=0o700, exist_ok=True)
+        os.chmod(directory, 0o700)
         sid = secrets.token_hex(8)
         ec = ["-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256", "-nodes"]
-        _run([ssl_bin, "req", "-x509", *ec, "-keyout", "ca.key", "-out", "ca.crt", "-days", str(days),
-              "-subj", f"/CN=sharness session {sid}", "-addext", "basicConstraints=critical,CA:TRUE,pathlen:0",
-              "-addext", "keyUsage=critical,keyCertSign"], directory)
-        for role in roles:
-            _run([ssl_bin, "req", *ec, "-keyout", f"{role}.key", "-out", f"{role}.csr", "-subj", f"/CN={role}",
-                  "-addext", f"subjectAltName=URI:{SPIFFE.format(session=sid, role=role)},DNS:localhost",
-                  "-addext", "basicConstraints=critical,CA:FALSE"], directory)
-            _run([ssl_bin, "x509", "-req", "-in", f"{role}.csr", "-CA", "ca.crt", "-CAkey", "ca.key", "-CAcreateserial",
-                  "-out", f"{role}.crt", "-days", str(days), "-copy_extensions", "copy"], directory)
-            os.unlink(os.path.join(directory, f"{role}.csr"))
-            os.chmod(os.path.join(directory, f"{role}.key"), 0o600)
-        os.unlink(os.path.join(directory, "ca.key"))                 # the set of identities is now closed
-        for leftover in ("ca.srl",):
-            try:
-                os.unlink(os.path.join(directory, leftover))
-            except OSError:
-                pass
+        old_umask = os.umask(0o077)                         # every key is born 0600; no window to tighten
+        try:
+            _run([ssl_bin, "req", "-x509", *ec, "-keyout", "ca.key", "-out", "ca.crt", "-days", str(days),
+                  "-subj", f"/CN=sharness session {sid}", "-addext", "basicConstraints=critical,CA:TRUE,pathlen:0",
+                  "-addext", "keyUsage=critical,keyCertSign"], directory)
+            for role in roles:
+                _run([ssl_bin, "req", *ec, "-keyout", f"{role}.key", "-out", f"{role}.csr", "-subj", f"/CN={role}",
+                      "-addext", f"subjectAltName=URI:{SPIFFE.format(session=sid, role=role)},DNS:localhost",
+                      "-addext", "basicConstraints=critical,CA:FALSE"], directory)
+                _run([ssl_bin, "x509", "-req", "-in", f"{role}.csr", "-CA", "ca.crt", "-CAkey", "ca.key", "-CAcreateserial",
+                      "-out", f"{role}.crt", "-days", str(days), "-copy_extensions", "copy"], directory)
+                os.unlink(os.path.join(directory, f"{role}.csr"))
+        finally:
+            os.umask(old_umask)
+            for leftover in ("ca.key", "ca.srl"):            # the CA key dies whatever happened: the set of identities is closed
+                try:
+                    os.unlink(os.path.join(directory, leftover))
+                except OSError:
+                    pass
+        for name in os.listdir(directory):
+            os.chmod(os.path.join(directory, name), 0o600 if name.endswith(".key") else 0o644)
         created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         with open(os.path.join(directory, "session.json"), "w", encoding="utf-8") as f:
             json.dump({"schema": "sharness-ai.session/v0", "id": sid, "roles": list(roles), "created": created,

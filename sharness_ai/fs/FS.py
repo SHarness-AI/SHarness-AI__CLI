@@ -1,7 +1,9 @@
 """The fs door's logic, the same over any Store: normalise the path, keep it under the root,
 ask the rows, then send to the target. Content is never interpreted beyond what it parses as."""
+import json
 import os
 import posixpath
+from urllib.parse import unquote
 
 from sharness_ai.door import Contract, Door, Rows, Verdict
 from sharness_ai.fs.Store import OutsideRoot, Store
@@ -24,7 +26,8 @@ class FS(Door):
     @staticmethod
     def normalise(raw: str):
         """A relative path inside the root, or None: no `..`, no absolute, no empty, no control chars."""
-        if not raw or any(ord(c) < 32 for c in raw) or raw.startswith("/"):
+        raw = unquote(raw.split("?", 1)[0].split("#", 1)[0])    # decode first, then check: no %2e%2e, no ?query
+        if not raw or any(ord(c) < 32 or c == "\x7f" for c in raw) or raw.startswith("/") or len(raw) > 1024:
             return None
         parts = raw.split("/")
         if ".." in parts:
@@ -39,9 +42,11 @@ class FS(Door):
         op = route["op"]
         if op == "mkdir":
             try:
-                raw = __import__("json").loads(body or b"{}").get("path", "")
-            except ValueError:
+                raw = json.loads(body or b"{}").get("path", "")
+            except (ValueError, AttributeError):
                 return Verdict.refuse("mkdir wants {\"path\": …}", status=400)
+            if not isinstance(raw, str):
+                return Verdict.refuse("mkdir wants a path string", status=400)
         else:
             raw = params.get("path", "")
         if op == "list":

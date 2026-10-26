@@ -180,3 +180,12 @@ class Test_CLI_levels:
         code = cli().run(["contain", "--workspace", ".", "--profile", "tool-server", "--", "sh", "-c", "echo from-under; touch /etc/x 2>/dev/null || echo refused"])
         out, err = capfd.readouterr()
         assert code == 0 and "from-under" in out and "refused" in out and "sharness-ai run" in err
+
+
+class Test_L5_hardening:
+    def test_agent_name_is_a_word(self):
+        bad = {"pbp": 1, "level": 5, "contain": {"agent": "claude\x1b[31m", "workspace": "/w"}}
+        with pytest.raises(PolicyError):
+            L5.compile(bad)
+        ok = {"pbp": 1, "level": 5, "contain": {"agent": "my-agent.v2", "workspace": "/w"}}
+        assert L5.compile(ok)["document"]["id"] == "my-agent.v2"

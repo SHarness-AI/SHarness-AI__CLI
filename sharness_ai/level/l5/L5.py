@@ -6,6 +6,7 @@ The sentence is the document read back: "contain claude to /abs/path, github.com
 The profile defaults to coding-agent; the budget to the profile's. Compilation fills the level-4
 blanks from the sentence and nothing else."""
 import os
+import re
 
 from sharness_ai.level.l4.L4 import L4
 from sharness_ai.policy import PolicyError
@@ -26,8 +27,8 @@ class L5:
         c = doc.get("contain")
         if not isinstance(c, dict):
             return p + ["contain must be an object: agent, workspace, sites, secrets, profile, budget"]
-        if not isinstance(c.get("agent"), str) or not c.get("agent"):
-            p.append("contain.agent must name the agent (a word)")
+        if not isinstance(c.get("agent"), str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", c.get("agent") or ""):
+            p.append("contain.agent must name the agent: letters, digits, dot, dash, underscore, at most 64")
         ws = c.get("workspace")
         if not isinstance(ws, str) or not ws.startswith("/") or os.path.normpath(ws) != ws:
             p.append("contain.workspace must be an absolute, normalised path")
@@ -39,8 +40,6 @@ class L5:
         b = c.get("budget", {})
         if not isinstance(b, dict) or any(k not in ("memory_mb", "pids") for k in b):
             p.append("contain.budget may hold memory_mb and pids only")
-        for k in ("agent", "workspace", "sites", "secrets", "profile", "budget"):
-            pass
         for k in c:
             if k not in ("agent", "workspace", "sites", "secrets", "profile", "budget"):
                 p.append(f"contain.{k}: unknown key at level 5")

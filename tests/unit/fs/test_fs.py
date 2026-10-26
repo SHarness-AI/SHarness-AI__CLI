@@ -138,3 +138,63 @@ class Test_CLI_fs:
         assert "18/18 held" in out and "caveat" in out
         assert cli().run(["--json", "door", "conformance", "sharness.fs.disk"]) == 0
         assert json.loads(capsys.readouterr().out)["failed"] == []
+
+
+class Test_Hardening:
+    """The review of 26 Oct 2026: traversal by encoding or query, a directory swapped for a link, the twin's cap,
+    a reason that could carry a newline, a Content-Length that is not a number."""
+
+    def test_encoded_traversal_and_query_strings_are_refused(self):
+        assert FS.normalise("%2e%2e/etc/passwd") is None
+        assert FS.normalise("..%2f..%2fetc") is None
+        assert FS.normalise("notes.txt?x=../../etc") == "notes.txt"
+        assert FS.normalise("a%20b.txt") == "a b.txt"
+        assert FS.normalise("x" * 1025) is None
+
+    def test_a_directory_that_is_a_symlink_is_refused_at_open_time(self, session, tmp_path):
+        root = tmp_path / "root"
+        outside = tmp_path / "outside"
+        root.mkdir(), outside.mkdir()
+        os.symlink(outside, root / "docs")                       # a link where a directory should be
+        door = FS(session, Disk(str(root)))
+        port = door.serve(background=True)
+        try:
+            c = Client(session, "app", "fs", port)
+            for method, path in (("PUT", "/v0/files/docs/x.txt"), ("POST", "/v0/files/docs/x.txt/append"), ("POST", "/v0/mkdir")):
+                body = b'{"path": "docs/sub"}' if path == "/v0/mkdir" else b"x"
+                status, data = c.request(method, path, body)
+                assert status == 403 and "symbolic link" in data["reason"], (method, path, data)
+            assert not list(outside.iterdir())
+            status, _ = c.request("PUT", "/v0/files/ok/x.txt", b"x")
+            assert status == 201 and (root / "ok" / "x.txt").read_text() == "x"
+        finally:
+            door.stop()
+
+    def test_twin_has_a_cap(self):
+        t = Twin(max_total=10)
+        t.write("a", b"12345")
+        with pytest.raises(OSError):
+            t.write("b", b"123456")
+        t.write("a", b"1234567890")                               # replacing within the cap is fine
+        with pytest.raises(OSError):
+            t.append("a", b"x")
+
+    def test_a_reason_is_one_clean_line(self):
+        from sharness_ai.door.Verdict import Verdict
+        v = Verdict.refuse("bad\npath\x1b[31m" + "x" * 500)
+        assert "\n" not in v.reason and "\x1b" not in v.reason and len(v.reason) <= 300
+
+    def test_bad_content_length_is_400(self, session):
+        import http.client
+        from sharness_ai.door.Client import context
+        door = FS(session, Twin())
+        port = door.serve(background=True)
+        try:
+            conn = http.client.HTTPSConnection("localhost", port, context=context(session, "app", server=False), timeout=10)
+            conn.putrequest("PUT", "/v0/files/x", skip_accept_encoding=True)
+            conn.putheader("Content-Length", "not-a-number")
+            conn.endheaders()
+            r = conn.getresponse()
+            assert r.status == 400
+        finally:
+            door.stop()

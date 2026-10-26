@@ -1,10 +1,21 @@
-"""sharness.fs.disk: the local disk as the target. Every path is resolved with realpath and must
-stay under the root (a symlink pointing out is a refusal, not a write); the exec bit is never set
-on what is written; a write is atomic (a temp file beside it, then rename)."""
+"""sharness.fs.disk: the local disk as the target.
+
+Every path is walked component by component from the root with openat(2) and O_NOFOLLOW, so a
+symbolic link anywhere in it is a refusal, not a write, and nothing can be swapped between the
+check and the use (the check is the open). Writes are atomic (a temporary name in the same
+directory, then rename, both by directory descriptor), never executable, and never follow a link
+at the final component either."""
+import errno
 import os
-import tempfile
+import stat
 
 from sharness_ai.fs.Store import OutsideRoot, Store
+
+DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+try:
+    DIR_FLAGS |= os.O_CLOEXEC
+except AttributeError:
+    pass
 
 
 class Disk(Store):
@@ -14,59 +25,120 @@ class Disk(Store):
         self.root = os.path.realpath(root)
         os.makedirs(self.root, exist_ok=True)
 
-    def _abs(self, rel: str, for_write: bool = False) -> str:
-        path = os.path.join(self.root, rel)
-        real = os.path.realpath(path)
-        parent_real = os.path.realpath(os.path.dirname(path))
-        if real != self.root and not real.startswith(self.root + os.sep):
-            raise OutsideRoot(f"{rel} resolves to {real}")
-        if parent_real != self.root and not parent_real.startswith(self.root + os.sep):
-            raise OutsideRoot(f"the folder of {rel} resolves to {parent_real}")
-        if os.path.islink(path):
-            raise OutsideRoot(f"{rel} is a symlink")
-        return path
+    def _dir(self, rel_dir: str, create: bool = False) -> int:
+        """A descriptor for the directory `rel_dir` under the root, opened one component at a time
+        with O_NOFOLLOW; a component that is a symlink, or missing without `create`, is OutsideRoot."""
+        fd = os.open(self.root, DIR_FLAGS)
+        try:
+            for part in [p for p in rel_dir.split("/") if p]:
+                try:
+                    nxt = os.open(part, DIR_FLAGS, dir_fd=fd)
+                except FileNotFoundError:
+                    if not create:
+                        raise
+                    os.mkdir(part, 0o755, dir_fd=fd)
+                    nxt = os.open(part, DIR_FLAGS, dir_fd=fd)
+                os.close(fd)
+                fd = nxt
+            return fd
+        except OutsideRoot:
+            os.close(fd)
+            raise
+        except OSError as e:
+            os.close(fd)
+            if e.errno in (errno.ELOOP, errno.ENOTDIR):       # a link where a directory should be
+                raise OutsideRoot(f"a component of {rel_dir} is a symbolic link or not a directory") from None
+            raise
+
+    @staticmethod
+    def _split(rel: str):
+        d, _, name = rel.rpartition("/")
+        return d, name
+
+    def _open_file(self, rel: str, flags: int, mode: int = 0o644, create_dirs: bool = False) -> int:
+        d, name = self._split(rel)
+        dfd = self._dir(d, create=create_dirs)
+        try:
+            try:
+                return os.open(name, flags | os.O_NOFOLLOW | os.O_CLOEXEC, mode, dir_fd=dfd)
+            except OSError as e:
+                if e.errno == errno.ELOOP:                       # the final component is a symlink
+                    raise OutsideRoot(f"{rel} is a symbolic link") from None
+                raise
+        finally:
+            os.close(dfd)
 
     def exists(self, rel: str) -> bool:
-        return os.path.isfile(self._abs(rel))
+        d, name = self._split(rel)
+        try:
+            dfd = self._dir(d)
+        except (FileNotFoundError, OutsideRoot):
+            return False
+        try:
+            st = os.stat(name, dir_fd=dfd, follow_symlinks=False)
+            return stat.S_ISREG(st.st_mode)
+        except FileNotFoundError:
+            return False
+        finally:
+            os.close(dfd)
 
     def read(self, rel: str) -> bytes:
-        with open(self._abs(rel), "rb") as f:
-            return f.read()
+        fd = self._open_file(rel, os.O_RDONLY)
+        try:
+            chunks = []
+            while True:
+                b = os.read(fd, 1 << 20)
+                if not b:
+                    return b"".join(chunks)
+                chunks.append(b)
+        finally:
+            os.close(fd)
 
     def write(self, rel: str, data: bytes) -> None:
-        path = self._abs(rel, for_write=True)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".sharness-fs-")
+        d, name = self._split(rel)
+        dfd = self._dir(d, create=True)
+        tmp = f".sharness-fs-{os.getpid()}-{name}.tmp"
         try:
-            with os.fdopen(fd, "wb") as f:
-                f.write(data)
-            os.chmod(tmp, 0o644)                       # never executable
-            os.replace(tmp, path)
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o644, dir_fd=dfd)
+            try:
+                os.write(fd, data)
+                os.fchmod(fd, 0o644)                           # never executable
+            finally:
+                os.close(fd)
+            os.rename(tmp, name, src_dir_fd=dfd, dst_dir_fd=dfd)   # atomic; replaces a link at `name` without following it
         except BaseException:
             try:
-                os.unlink(tmp)
-            finally:
-                raise
+                os.unlink(tmp, dir_fd=dfd)
+            except OSError:
+                pass
+            raise
+        finally:
+            os.close(dfd)
 
     def append(self, rel: str, data: bytes) -> None:
-        path = self._abs(rel, for_write=True)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW
-        fd = os.open(path, flags, 0o644)
+        fd = self._open_file(rel, os.O_WRONLY | os.O_APPEND | os.O_CREAT, create_dirs=True)
         try:
             os.write(fd, data)
         finally:
             os.close(fd)
 
     def delete(self, rel: str) -> None:
-        os.unlink(self._abs(rel))
+        d, name = self._split(rel)
+        dfd = self._dir(d)
+        try:
+            os.unlink(name, dir_fd=dfd)
+        finally:
+            os.close(dfd)
 
     def mkdir(self, rel: str) -> None:
-        os.makedirs(self._abs(rel), exist_ok=True)
+        os.close(self._dir(rel, create=True))
 
     def listing(self) -> list:
         out = []
-        for dirpath, _, files in os.walk(self.root):
+        for dirpath, dirnames, files in os.walk(self.root, followlinks=False):
+            dirnames[:] = [x for x in dirnames if not os.path.islink(os.path.join(dirpath, x))]
             for f in files:
-                out.append(os.path.relpath(os.path.join(dirpath, f), self.root))
+                p = os.path.join(dirpath, f)
+                if not os.path.islink(p) and not f.startswith(".sharness-fs-"):
+                    out.append(os.path.relpath(p, self.root))
         return sorted(out)

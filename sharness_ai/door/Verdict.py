@@ -1,10 +1,19 @@
 """A verdict and the audit line. The verdict names the row that decided; the audit line never
 carries a body or a secret, only the shape of the request and what was decided."""
 import json
-import sys
 import time
 from collections import deque
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
+
+
+MAX_REASON = 300
+
+
+def clean(text: str) -> str:
+    """One printable line, capped: a reason may echo a caller's path and must not carry a newline
+    or a terminal escape into the log or another caller's screen."""
+    s = "".join(c if 32 <= ord(c) < 127 or ord(c) > 159 else " " for c in str(text))
+    return s if len(s) <= MAX_REASON else s[:MAX_REASON - 1] + "…"
 
 
 @dataclass
@@ -21,7 +30,7 @@ class Verdict:
 
     @classmethod
     def refuse(cls, reason: str, row: str = "", status: int = 403) -> "Verdict":
-        return cls(False, status, reason, row)
+        return cls(False, status, clean(reason), clean(row))
 
     def payload(self) -> dict:
         d = {"allowed": self.allowed, "status": self.status}
@@ -39,8 +48,8 @@ class Audit:
         self.door, self.lines, self.stream = door, deque(maxlen=keep), stream
 
     def record(self, peer: str, method: str, path: str, size: int, verdict: Verdict) -> dict:
-        line = {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "door": self.door, "peer": peer or "?",
-                "method": method, "path": path, "bytes": size, "allowed": verdict.allowed, "status": verdict.status,
+        line = {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "door": self.door, "peer": clean(peer or "?"),
+                "method": clean(method), "path": clean(path), "bytes": size, "allowed": verdict.allowed, "status": verdict.status,
                 "reason": verdict.reason, "row": verdict.row}
         self.lines.append(line)
         if self.stream is not None:
@@ -51,8 +60,4 @@ class Audit:
         return list(self.lines)
 
 
-def say(text: str):
-    print(text, file=sys.stderr, flush=True)
-
-
-__all__ = ["Audit", "Verdict", "asdict", "say"]
+__all__ = ["Audit", "Verdict", "clean"]

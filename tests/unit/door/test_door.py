@@ -106,3 +106,30 @@ class Test_Contract_and_Rows:
     def test_verdict_payload(self):
         assert Verdict.refuse("why", "row").payload() == {"allowed": False, "status": 403, "reason": "why", "row": "row"}
         assert Door.role == "door"
+
+
+class Test_Session_hardening:
+    @needs_openssl
+    def test_keys_are_private_and_the_ca_key_is_gone_even_when_a_role_fails(self, tmp_path, monkeypatch):
+        import stat
+        s = Session.new(str(tmp_path / "s"), ("app", "fs"))
+        for name in ("app.key", "fs.key"):
+            assert stat.S_IMODE((tmp_path / "s" / name).stat().st_mode) == 0o600
+        assert stat.S_IMODE((tmp_path / "s").stat().st_mode) == 0o700 and not (tmp_path / "s" / "ca.key").exists()
+        # a failure half-way: the CA key must still be gone
+        import sys
+        S = sys.modules["sharness_ai.door.Session"]          # the package re-exports the class under the module's name
+        calls = {"n": 0}
+        real = S._run
+
+        def flaky(args, cwd):
+            calls["n"] += 1
+            if calls["n"] == 3:
+                raise SessionError("simulated openssl failure")
+            return real(args, cwd)
+        monkeypatch.setattr(S, "_run", flaky)
+        with pytest.raises(SessionError):
+            Session.new(str(tmp_path / "t"), ("app", "fs"))
+        assert not (tmp_path / "t" / "ca.key").exists()
+        with pytest.raises(SessionError):
+            Session.new(str(tmp_path / "u"), ("app",), days=0)
