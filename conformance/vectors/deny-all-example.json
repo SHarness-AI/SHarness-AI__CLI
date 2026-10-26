@@ -1,0 +1,9 @@
+{
+ "pbp": 1,
+ "id": "deny-all-example",
+ "layer": "invocation",
+ "notes": "E02 example: read and exec the system, write nowhere, no network. Hash it with `sharness-ai policy hash` and in the browser at https://sharness.ai/mockups/policy-hash.html; the two must agree.",
+ "files": {"read": ["/usr", "/lib", "/lib64", "/bin", "/etc"], "write": [], "exec": ["/usr", "/bin"]},
+ "network": "none",
+ "process": {"no_new_privs": true}
+}

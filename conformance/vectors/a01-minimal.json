@@ -1,0 +1,13 @@
+{
+ "pbp": 1,
+ "id": "minimal",
+ "files": {
+  "read": [],
+  "write": [],
+  "exec": []
+ },
+ "network": "none",
+ "process": {
+  "no_new_privs": true
+ }
+}

@@ -1,0 +1,9 @@
+{
+ "pbp": 1,
+ "id": "allow-https-example",
+ "layer": "invocation",
+ "notes": "E03 example: as deny-all, plus TCP connect to port 443 only (Landlock ABI 4+). DNS is UDP and is not covered by Landlock: name resolution needs a network namespace policy or sharness.net.",
+ "files": {"read": ["/usr", "/lib", "/lib64", "/bin", "/etc"], "write": [], "exec": ["/usr", "/bin"]},
+ "network": {"connect_tcp_ports": [443]},
+ "process": {"no_new_privs": true}
+}

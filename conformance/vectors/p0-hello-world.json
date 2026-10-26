@@ -1,0 +1,9 @@
+{
+ "pbp": 1,
+ "id": "p0-hello-world",
+ "layer": "invocation",
+ "notes": "P0, a hello world: read and run the system, read the workspace at /work, write nothing, no network, 64 MiB of address space, 8 processes. deny-all-example plus the caps; the smallest policy worth enforcing.",
+ "files": {"read": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/work"], "write": [], "exec": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc"]},
+ "network": "none",
+ "process": {"no_new_privs": true, "max_memory_mb": 64, "max_pids": 8}
+}

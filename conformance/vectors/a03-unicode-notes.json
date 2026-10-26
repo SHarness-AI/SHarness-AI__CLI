@@ -1,0 +1,19 @@
+{
+ "pbp": 1,
+ "id": "unicode",
+ "layer": "invocation",
+ "notes": "café 日本 € <&> line sep para sep \"quoted\" back\\slash tab\t nl\n cr\r ctrl\u0001 del",
+ "files": {
+  "read": [
+   "/usr"
+  ],
+  "write": [],
+  "exec": [
+   "/usr"
+  ]
+ },
+ "network": "none",
+ "process": {
+  "no_new_privs": true
+ }
+}
