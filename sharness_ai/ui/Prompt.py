@@ -2,14 +2,38 @@
 the answer is the default or the next item of `answers`, so every screen that asks can also
 be scripted. A question shows its default before accepting it: nobody gets a grant they did
 not make."""
+import os
+import select
+import sys
+
 from sharness_ai.ui.Term import Term
+
+DEFAULT_TIMEOUT = 120                            # seconds; SHARNESS_AI_PROMPT_TIMEOUT overrides
 
 
 class Prompt:
-    def __init__(self, term: Term, answers: list = None):
+    def __init__(self, term: Term, answers: list = None, timeout: float = None):
         self.t = term
         self.answers = list(answers or [])
         self.asked = []                          # (question, answer), for tests and --debug
+        env = os.environ.get("SHARNESS_AI_PROMPT_TIMEOUT")
+        self.timeout = timeout if timeout is not None else float(env) if env else DEFAULT_TIMEOUT
+
+    def _input(self, text: str):
+        """input() with a timeout: a terminal nobody is typing at (an agent's tty) gets the
+        default after `timeout` seconds instead of hanging the session. sgit's CLI__Input."""
+        print(text, end="", flush=True, file=self.t.stream)
+        try:
+            ready, _, _ = select.select([sys.stdin], [], [], self.timeout)
+        except (OSError, ValueError):            # no select on this stdin (Windows): plain input
+            return input()
+        if not ready:
+            self.t.write(f"  (no answer in {int(self.timeout)} s: the default)")
+            return None
+        line = sys.stdin.readline()
+        if not line:
+            raise EOFError
+        return line.rstrip("\n")
 
     def _read(self, text: str):
         """The raw answer, or None when nobody can answer."""
@@ -20,7 +44,7 @@ class Prompt:
         if not self.t.interactive:
             return None
         try:
-            return input(text)
+            return self._input(text)
         except EOFError:
             self.t.write("")
             return None

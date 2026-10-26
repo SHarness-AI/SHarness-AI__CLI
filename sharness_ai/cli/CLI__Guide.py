@@ -11,7 +11,7 @@ from sharness_ai.probe import probe
 
 MENU = (("1", "probe", ["probe"]), ("2", "hello", ["hello"]), ("3", "new policy", ["policy", "new"]),
         ("4", "run a command", None), ("5", "translate", None), ("6", "components", ["components"]),
-        ("q", "quit", None))
+        ("7", "doctor", ["doctor"]), ("q", "quit", None))
 MAX_SCAN = 40
 
 

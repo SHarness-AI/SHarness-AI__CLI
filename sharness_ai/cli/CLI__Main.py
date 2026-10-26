@@ -4,6 +4,8 @@ its `cmd_*` method with set_defaults(func=...), so there is no `if` ladder here.
 
     sharness-ai                         the guide (a terminal), or the usage text (a pipe)
     probe | hello | run | policy …      the experiments, as before, drawn
+    doctor                              can a policy hold here? seven checks with their fixes
+    help [--format json]                the command surface, from the parser itself
     components [NAME] · bash net kms fs llm launcher    the map; verbs that say "not built" (exit 69)
 """
 import argparse
@@ -11,10 +13,12 @@ import sys
 
 from sharness_ai._version import VERSION
 from sharness_ai.cli.CLI__Components import ORDER, CLI__Components
+from sharness_ai.cli.CLI__Doctor import CLI__Doctor
 from sharness_ai.cli.CLI__Guide import CLI__Guide
 from sharness_ai.cli.CLI__Hello import CLI__Hello
 from sharness_ai.cli.CLI__Policy import CLI__Policy
 from sharness_ai.cli.CLI__Probe import CLI__Probe
+from sharness_ai.cli.CLI__Reference import CLI__Reference
 from sharness_ai.cli.CLI__Run import CLI__Run
 from sharness_ai.cli.CLI__State import CLI__State
 from sharness_ai.ui import Draw, Prompt, Term, Trace
@@ -38,6 +42,8 @@ class CLI__Main:
         self.hello = CLI__Hello(self)
         self.components = CLI__Components(self)
         self.guide = CLI__Guide(self)
+        self.doctor = CLI__Doctor(self)
+        self.reference = CLI__Reference(self)
 
     # ---- the parser -----------------------------------------------------------------------------
     def build_parser(self) -> argparse.ArgumentParser:
@@ -56,6 +62,14 @@ class CLI__Main:
         g = sub.add_parser("guide", help="where you are, the ladder, and what to do next (the no-arguments screen)")
         g.add_argument("--once", action="store_true", help="draw once, no menu")
         g.set_defaults(func=self.guide.cmd_guide)
+
+        dr = sub.add_parser("doctor", help="can a policy hold here? seven checks in order, each with what to do about it")
+        dr.add_argument("--json", action="store_true", default=S)
+        dr.set_defaults(func=self.doctor.cmd_doctor)
+
+        hp = sub.add_parser("help", help="every command, read from the parser itself; --format json for a page or a diff")
+        hp.add_argument("--format", choices=("text", "json"), default="text")
+        hp.set_defaults(func=self.reference.cmd_help)
 
         p = sub.add_parser("probe", help="E01: the grant, what a process here can do before any policy")
         p.add_argument("--json", action="store_true", default=S, help="machine-readable output")

@@ -113,6 +113,8 @@ experiments and storyboards is [sharness.ai/code/experiments](https://sharness.a
 | `sharness-ai policy new [FILE]`, `policy show FILE`, `policy edit FILE` | | the wizard: five questions (read, write, exec, ports, memory), every default shown before it is accepted, the policy drawn as one process with its edges, the file written, its hash and the `run` command printed; `show` draws any policy; `edit` changes one edge and shows the name change. Flags (`--write /work/out --ports 443 -y`) answer without asking, for scripts |
 | `sharness-ai components [NAME]`, `sharness-ai net` (and `bash`, `kms`, `fs`, `llm`, `launcher`) | | the operating system a process sees, drawn, with honest status: all seven designed, none built. A component's verb prints its proposed REST surface and exits 69 (unavailable) until it is runnable |
 | `sharness-ai guide [--once]` | | the no-arguments screen, for a pipe or a script |
+| `sharness-ai doctor` | | can a policy hold here? Seven checks in order (kernel, Landlock files, Landlock TCP, network namespace, cgroups, process count, a real write refused under a deny-write policy), each pass, warn, fail or skip with what to do about it; a fatal failure skips the rest; `--json` is the report. Exit 0 healthy or degraded, 1 failed |
+| `sharness-ai help [--format json]` | | every command, read from the parser itself, so no page can describe a flag that does not exist; the JSON is what the site's CLI page is written from |
 
 ```
 $ sharness-ai hello
