@@ -3,6 +3,8 @@ must refuse it. Runs only when the earlier checks allow; the whole thing is shar
 this interpreter, the way hello does it."""
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import time
 
@@ -16,15 +18,22 @@ class Check__Write_Probe:
         if ctx.abi < 1 or not hasattr(os, "fork"):
             r.status, r.message = SKIP, "needs Landlock"
             return r.done(t0)
-        from sharness_ai.hello import _run_probe, hello_policy
+        import sharness_ai
+        from sharness_ai.hello import PROBE_FLAGS, RUNNER_FLAGS, hello_policy
+        pkg_parent = os.path.realpath(os.path.dirname(os.path.dirname(sharness_ai.__file__)))
         with tempfile.TemporaryDirectory(prefix="sharness-ai-doctor-") as d:
             target = os.path.join(d, "x")
             policy = hello_policy(workspace=d)                 # read the system and d; write nowhere
+            for k in ("read", "exec"):                         # the package itself, wherever it is (uninstalled in CI)
+                policy["files"][k] = sorted(set(policy["files"][k]) | {pkg_parent})
             pp = os.path.join(d, "policy.json")
             with open(pp, "w") as f:
                 json.dump(policy, f)
             code = f"open({target!r}, 'w').close(); print('wrote')"
-            rc, out, err = _run_probe(pp, code)
+            env = dict(os.environ, PYTHONPATH=pkg_parent)
+            cmd = [sys.executable, *RUNNER_FLAGS, "-m", "sharness_ai", "run", "--policy", pp, "--", sys.executable, *PROBE_FLAGS, "-c", code]
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env)  # noqa: S603 - argv list, this interpreter, our code
+            rc, out, err = r.returncode, r.stdout.strip(), r.stderr.strip()
             wrote = os.path.exists(target)
         r.details = {"exit": rc, "stderr_tail": err[-200:]}
         if wrote or out.endswith("wrote"):

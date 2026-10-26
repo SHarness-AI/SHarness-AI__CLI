@@ -112,8 +112,9 @@ print('door:', status)
 status, data = Client(s, 'app', 'fs', {port}).request('PUT', '/v0/files/key.txt', b'-----BEGIN ' + b'PRIVATE KEY-----')
 print('door key:', status, data.get('reason'))
 """
+            env = dict(os.environ, PYTHONPATH=repo)              # the package, uninstalled (as in CI); -P keeps the cwd out
             r = subprocess.run([sys.executable, "-P", "-s", "-m", "sharness_ai", "run", "--policy", str(pp), "--quiet", "--",
-                                sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=60)
+                                sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=60, env=env)
             out = r.stdout
             assert "direct: refused by the kernel 13" in out, (out, r.stderr)
             assert "door: 201" in out and "door key: 403" in out, (out, r.stderr)
