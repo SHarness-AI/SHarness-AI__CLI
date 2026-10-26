@@ -1,0 +1,20 @@
+{
+  "name": "sharness-ai",
+  "version": "0.0.1",
+  "description": "SHarness in JavaScript, for Node and the browser: Process Behaviour Policies against the standard on sharness.ai. Experiments stage; no SHarness component is built.",
+  "type": "module",
+  "main": "src/policy.js",
+  "exports": { ".": "./src/policy.js" },
+  "bin": { "sharness-ai": "bin/sharness-ai.js" },
+  "files": ["src", "bin", "README.md", "LICENSE"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test",
+    "conformance:fetch": "node conformance/fetch.mjs",
+    "conformance:live": "mkdir -p /tmp/sharness-ai-vectors && cd /tmp/sharness-ai-vectors && node $OLDPWD/conformance/fetch.mjs && cd $OLDPWD && SHARNESS_AI_VECTORS=/tmp/sharness-ai-vectors npm test"
+  },
+  "repository": { "type": "git", "url": "https://github.com/SHarness-AI/SHarness-AI__JS" },
+  "homepage": "https://sharness.ai/code/languages/",
+  "license": "Apache-2.0",
+  "keywords": ["sharness", "process-behaviour-policy", "landlock", "sandbox", "ai-agents"]
+}

@@ -1,0 +1,1 @@
+{"pbp": 1, "id": "x", "files": {"read": [], "write": [], "exec": []}, "network": {"connect_tcp_ports": [true]}, "process": {"no_new_privs": true}}

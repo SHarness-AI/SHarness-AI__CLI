@@ -1,0 +1,21 @@
+name: tests
+on:
+  push: { branches: [dev] }
+  pull_request: { branches: [dev, main] }
+  workflow_dispatch:
+permissions: { contents: read }
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: { node: ["20", "22"] }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: "${{ matrix.node }}" }
+      - name: The vendored vectors (what this commit was written against)
+        run: npm test
+      - name: The live vectors on sharness.ai (the standard as published now)
+        run: npm run conformance:live

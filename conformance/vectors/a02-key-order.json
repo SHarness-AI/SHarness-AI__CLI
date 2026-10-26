@@ -1,0 +1,2 @@
+{"process": {"no_new_privs": true}, "network": "none",
+ "files": {"exec": [], "write": [], "read": []}, "id": "minimal", "pbp": 1}

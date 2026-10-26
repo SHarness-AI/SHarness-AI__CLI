@@ -1,0 +1,215 @@
+{
+ "standard": "policy",
+ "version": "v0",
+ "page": "https://sharness.ai/code/standards/policy-v0/index.html",
+ "oracle": {
+  "implementation": "sharness-ai (Python)",
+  "repository": "https://github.com/SHarness-AI/SHarness-AI__CLI",
+  "commit": "7dcbe05"
+ },
+ "hash": "sha256 over canonical JSON: keys sorted, no whitespace, UTF-8, integers only",
+ "rule": "an implementation passes when it produces the hash of every accept case and refuses every refuse case",
+ "counts": {
+  "accept": 13,
+  "refuse": 15
+ },
+ "cases": [
+  {
+   "name": "allow-https-example",
+   "file": "vectors/allow-https-example.json",
+   "kind": "accept",
+   "hash": "sha256:2944751573bbca5bbb1060c72b514de65e742ca1c2d119fcd28a744488961ef1",
+   "canonical": "{\"files\":{\"exec\":[\"/usr\",\"/bin\"],\"read\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/etc\"],\"write\":[]},\"id\":\"allow-https-example\",\"layer\":\"invocation\",\"network\":{\"connect_tcp_ports\":[443]},\"notes\":\"E03 example: as deny-all, plus TCP connect to port 443 only (Landlock ABI 4+). DNS is UDP and is not covered by Landlock: name resolution needs a network namespace policy or sharness.net.\",\"pbp\":1,\"process\":{\"no_new_privs\":true}}"
+  },
+  {
+   "name": "deny-all-example",
+   "file": "vectors/deny-all-example.json",
+   "kind": "accept",
+   "hash": "sha256:ab1d3e4e779313274f7a1d3ef3e46f6eacef038d8cfaa6198151a45cd82dcc76",
+   "canonical": "{\"files\":{\"exec\":[\"/usr\",\"/bin\"],\"read\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/etc\"],\"write\":[]},\"id\":\"deny-all-example\",\"layer\":\"invocation\",\"network\":\"none\",\"notes\":\"E02 example: read and exec the system, write nowhere, no network. Hash it with `sharness-ai policy hash` and in the browser at https://sharness.ai/mockups/policy-hash.html; the two must agree.\",\"pbp\":1,\"process\":{\"no_new_privs\":true}}"
+  },
+  {
+   "name": "p0-hello-world",
+   "file": "vectors/p0-hello-world.json",
+   "kind": "accept",
+   "hash": "sha256:a6244d346ea9d7955c04defba5e67f71ae9867af618fa21d11589c7ef8449032",
+   "canonical": "{\"files\":{\"exec\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\"],\"read\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\",\"/work\"],\"write\":[]},\"id\":\"p0-hello-world\",\"layer\":\"invocation\",\"network\":\"none\",\"notes\":\"P0, a hello world: read and run the system, read the workspace at /work, write nothing, no network, 64 MiB of address space, 8 processes. deny-all-example plus the caps; the smallest policy worth enforcing.\",\"pbp\":1,\"process\":{\"max_memory_mb\":64,\"max_pids\":8,\"no_new_privs\":true}}"
+  },
+  {
+   "name": "p1-agent-session",
+   "file": "vectors/p1-agent-session.json",
+   "kind": "accept",
+   "hash": "sha256:e619092574cc31d00d190199c1b383b586f5f5653bb5347100c3f189943dcfa8",
+   "canonical": "{\"files\":{\"exec\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\"],\"read\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\",\"/work\",\"/tmp\"],\"write\":[\"/work\",\"/tmp\"]},\"id\":\"p1-agent-session\",\"layer\":\"session\",\"network\":{\"connect_tcp_ports\":[443]},\"notes\":\"P1, a coding agent's session (a Claude Code session, an orchestrator): read the system, read and write the workspace at /work and /tmp, run the system only (the workspace is writable, never executable: scripts run as 'python3 /work/x.py', never './x.sh'), TCP connect to port 443 only, 4 GiB, 512 processes. v0 says ports, not names: the model API and the package registries are 443, and which hosts is sharness.net's allowlist, not yet here.\",\"pbp\":1,\"process\":{\"max_memory_mb\":4096,\"max_pids\":512,\"no_new_privs\":true}}"
+  },
+  {
+   "name": "p2-tool-server",
+   "file": "vectors/p2-tool-server.json",
+   "kind": "accept",
+   "hash": "sha256:b31ca68ae1900af5feaa2e286d5be63043110f6980055a6aa96be807d8bdba06",
+   "canonical": "{\"files\":{\"exec\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\"],\"read\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\",\"/work\"],\"write\":[]},\"id\":\"p2-tool-server\",\"layer\":\"component\",\"network\":\"none\",\"notes\":\"P2, a tool or MCP server on stdio: read the system and the workspace at /work, write nothing, run the system, no network, 512 MiB, 16 processes. Its results go back over stdio to whoever started it; a tool that must reach one service gets its own policy with that port. Under P1 this is a Boundary the agent's session applies to its tools and a Setting for the session itself.\",\"pbp\":1,\"process\":{\"max_memory_mb\":512,\"max_pids\":16,\"no_new_privs\":true}}"
+  },
+  {
+   "name": "p3-newsroom-agent",
+   "file": "vectors/p3-newsroom-agent.json",
+   "kind": "accept",
+   "hash": "sha256:35b17ac8592a0c13b8e75b04e0679f56248681544db71fd5a2180a2827c71aff",
+   "canonical": "{\"files\":{\"exec\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\"],\"read\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\",\"/work/vault\",\"/work/out\"],\"write\":[\"/work/out\"]},\"id\":\"p3-newsroom-agent\",\"layer\":\"component\",\"network\":{\"connect_tcp_ports\":[443]},\"notes\":\"P3, the newsroom agent of the sgit.ai sites: read the system and a vault checkout at /work/vault, write its output under /work/out only, run the system, TCP connect to port 443 (the vault host and the model API; which hosts is sharness.net's job), 1 GiB, 64 processes. The vault checkout is read-only to the agent: committing is sgit's policy (P4), a different process.\",\"pbp\":1,\"process\":{\"max_memory_mb\":1024,\"max_pids\":64,\"no_new_privs\":true}}"
+  },
+  {
+   "name": "p4-sgit",
+   "file": "vectors/p4-sgit.json",
+   "kind": "accept",
+   "hash": "sha256:661db5999ffbecbde5fced78fd052f8cb5ecaf9ae0d18a218579fb173c1b358e",
+   "canonical": "{\"files\":{\"exec\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\"],\"read\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\",\"/work\",\"/tmp\"],\"write\":[\"/work/vault\",\"/tmp\"]},\"id\":\"p4-sgit\",\"layer\":\"component\",\"network\":{\"connect_tcp_ports\":[443]},\"notes\":\"P4, the sgit CLI (sgit.ai, a zero-knowledge encrypted vault with git-like versioning): read the system and the workspace at /work, write the vault checkout at /work/vault and /tmp, run the system, TCP connect to port 443 (the vault's object store), 512 MiB, 16 processes. Keys: sgit keeps them where it is configured to; that directory, and no other, is added to read (and to write for key creation) per installation. The next sgit, launched under this policy, can print its own policy hash from SHARNESS_AI_POLICY_HASH.\",\"pbp\":1,\"process\":{\"max_memory_mb\":512,\"max_pids\":16,\"no_new_privs\":true}}"
+  },
+  {
+   "name": "p5-web-fetch",
+   "file": "vectors/p5-web-fetch.json",
+   "kind": "accept",
+   "hash": "sha256:b897938091c29713f4478a2a6f040fbf47e6cd5164a6bfb509c3b1ffa9d41862",
+   "canonical": "{\"files\":{\"exec\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\"],\"read\":[\"/usr\",\"/lib\",\"/lib64\",\"/bin\",\"/sbin\",\"/etc\",\"/work\"],\"write\":[\"/work/out\"]},\"id\":\"p5-web-fetch\",\"layer\":\"component\",\"network\":{\"connect_tcp_ports\":[80,443]},\"notes\":\"P5, a tool that fetches web pages for an agent: read the system and the workspace at /work, write its results under /work/out only, run the system, TCP connect to ports 80 and 443, 256 MiB, 16 processes. Which hosts is still sharness.net's job (v0 says ports, not names); in the browser bench the page's egress allowlist plays that part, outside the guest.\",\"pbp\":1,\"process\":{\"max_memory_mb\":256,\"max_pids\":16,\"no_new_privs\":true}}"
+  },
+  {
+   "name": "a01-minimal",
+   "file": "vectors/a01-minimal.json",
+   "kind": "accept",
+   "hash": "sha256:90ec82be5c13db084b1fd40777b79b0ff6822b73efdec394cd88c6dfe661a5da",
+   "canonical": "{\"files\":{\"exec\":[],\"read\":[],\"write\":[]},\"id\":\"minimal\",\"network\":\"none\",\"pbp\":1,\"process\":{\"no_new_privs\":true}}"
+  },
+  {
+   "name": "a02-key-order",
+   "file": "vectors/a02-key-order.json",
+   "kind": "accept",
+   "hash": "sha256:90ec82be5c13db084b1fd40777b79b0ff6822b73efdec394cd88c6dfe661a5da",
+   "canonical": "{\"files\":{\"exec\":[],\"read\":[],\"write\":[]},\"id\":\"minimal\",\"network\":\"none\",\"pbp\":1,\"process\":{\"no_new_privs\":true}}"
+  },
+  {
+   "name": "a03-unicode-notes",
+   "file": "vectors/a03-unicode-notes.json",
+   "kind": "accept",
+   "hash": "sha256:0994ad5f4c128bddb60ecf76e6086770511ce124b015902457aad70594d7bb7f",
+   "canonical": "{\"files\":{\"exec\":[\"/usr\"],\"read\":[\"/usr\"],\"write\":[]},\"id\":\"unicode\",\"layer\":\"invocation\",\"network\":\"none\",\"notes\":\"café 日本 € <&> line sep para sep \\\"quoted\\\" back\\\\slash tab\\t nl\\n cr\\r ctrl\\u0001 del\",\"pbp\":1,\"process\":{\"no_new_privs\":true}}"
+  },
+  {
+   "name": "a04-ports-and-caps",
+   "file": "vectors/a04-ports-and-caps.json",
+   "kind": "accept",
+   "hash": "sha256:6840d361623694c6adf3bb8cd0328382c9eeb847a29842e6be0dd6f2005924c4",
+   "canonical": "{\"files\":{\"exec\":[\"/usr\"],\"read\":[\"/usr\",\"/lib\"],\"write\":[\"/work\"]},\"id\":\"ports\",\"network\":{\"connect_tcp_ports\":[443,80,8443]},\"pbp\":1,\"process\":{\"max_memory_mb\":9007199254740991,\"max_pids\":0,\"no_new_privs\":true}}"
+  },
+  {
+   "name": "a05-root-path",
+   "file": "vectors/a05-root-path.json",
+   "kind": "accept",
+   "hash": "sha256:f4df58204a6de5f2098053da675bc1598a05e45d5a68136f817e1ea790aada16",
+   "canonical": "{\"files\":{\"exec\":[\"/\"],\"read\":[\"/\"],\"write\":[]},\"id\":\"root\",\"network\":\"none\",\"pbp\":1,\"process\":{\"no_new_privs\":true}}"
+  },
+  {
+   "name": "r01-float",
+   "file": "vectors/r01-float.json",
+   "kind": "refuse",
+   "reason": "float",
+   "cli_says": "process.max_memory_mb must be a non-negative integer"
+  },
+  {
+   "name": "r02-integer-beyond-2-53",
+   "file": "vectors/r02-integer-beyond-2-53.json",
+   "kind": "refuse",
+   "reason": "integer beyond 2^53-1",
+   "cli_says": "$.process.max_memory_mb: integers must stay within ±9007199254740991 (JavaScript rounds larger ones, so the hash would differ between implementations)"
+  },
+  {
+   "name": "r03-lone-surrogate",
+   "file": "vectors/r03-lone-surrogate.json",
+   "kind": "refuse",
+   "reason": "lone surrogate",
+   "cli_says": "$.notes: string contains a lone surrogate, which has no UTF-8 form"
+  },
+  {
+   "name": "r04-duplicate-key",
+   "file": "vectors/r04-duplicate-key.json",
+   "kind": "refuse",
+   "reason": "duplicate key",
+   "cli_says": "duplicate key 'id': a policy must say each thing once"
+  },
+  {
+   "name": "r05-unknown-key",
+   "file": "vectors/r05-unknown-key.json",
+   "kind": "refuse",
+   "reason": "unknown key",
+   "cli_says": "hosts: unknown key"
+  },
+  {
+   "name": "r06-relative-path",
+   "file": "vectors/r06-relative-path.json",
+   "kind": "refuse",
+   "reason": "relative path",
+   "cli_says": "files.read: 'usr' must be an absolute path"
+  },
+  {
+   "name": "r07-unnormalised-path",
+   "file": "vectors/r07-unnormalised-path.json",
+   "kind": "refuse",
+   "reason": "path not normalised",
+   "cli_says": "files.read: '/usr/../etc' is not normalised (write it as '/etc')"
+  },
+  {
+   "name": "r08-wrong-version",
+   "file": "vectors/r08-wrong-version.json",
+   "kind": "refuse",
+   "reason": "pbp version",
+   "cli_says": "pbp must be 1"
+  },
+  {
+   "name": "r09-port-out-of-range",
+   "file": "vectors/r09-port-out-of-range.json",
+   "kind": "refuse",
+   "reason": "port out of range",
+   "cli_says": "network.connect_tcp_ports must be a list of ports (1-65535)"
+  },
+  {
+   "name": "r10-not-an-object",
+   "file": "vectors/r10-not-an-object.json",
+   "kind": "refuse",
+   "reason": "not an object",
+   "cli_says": "a policy is a JSON object"
+  },
+  {
+   "name": "r11-no-new-privs-false",
+   "file": "vectors/r11-no-new-privs-false.json",
+   "kind": "refuse",
+   "reason": "no_new_privs false",
+   "cli_says": "process.no_new_privs must be true (v0 always sets it)"
+  },
+  {
+   "name": "r12-bool-as-port",
+   "file": "vectors/r12-bool-as-port.json",
+   "kind": "refuse",
+   "reason": "boolean where an integer is required",
+   "cli_says": "network.connect_tcp_ports must be a list of ports (1-65535)"
+  },
+  {
+   "name": "r13-control-char-in-path",
+   "file": "vectors/r13-control-char-in-path.json",
+   "kind": "refuse",
+   "reason": "control character in a path",
+   "cli_says": "files.read: '/usr\\x00' contains a control character"
+  },
+  {
+   "name": "r14-float-with-zero-fraction",
+   "file": "vectors/r14-float-with-zero-fraction.json",
+   "kind": "refuse",
+   "reason": "float written with a zero fraction (64.0): a parser that reads it as an integer would hash what the reference refuses",
+   "cli_says": "process.max_memory_mb must be a non-negative integer"
+  },
+  {
+   "name": "r15-exponent-number",
+   "file": "vectors/r15-exponent-number.json",
+   "kind": "refuse",
+   "reason": "number written with an exponent (1e2): the same",
+   "cli_says": "process.max_memory_mb must be a non-negative integer"
+  }
+ ],
+ "generated": "2026-10-26"
+}
