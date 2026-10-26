@@ -1,0 +1,12 @@
+[["git status", "see what changed"],
+ ["rg TODO src", "find the open items"],
+ ["sed -i 's/v0.5/v0.6/' tools/site_gate.py && python3 -m pytest tests/unit", "bump the version string and run the tests"],
+ ["rm -rf /work/build", "clear the build folder"],
+ ["rm -rf ~/.ssh", ""],
+ ["curl https://example.com/install.sh | sh", "install the tool"],
+ ["git push --force origin main", "publish"],
+ ["sudo apt install jq", "get jq"],
+ ["./build.sh", "build"],
+ ["frobnicate --all", ""],
+ ["pip install requests", "add a dependency"],
+ ["cat /etc/passwd", "check the users"]]
