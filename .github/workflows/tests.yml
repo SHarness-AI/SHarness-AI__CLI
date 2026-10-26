@@ -1,0 +1,22 @@
+name: tests
+on:
+  push: { branches: [dev] }
+  pull_request: { branches: [dev, main] }
+  workflow_dispatch:
+permissions: { contents: read }
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { persist-credentials: false }
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+        with: { go-version: "1.22" }
+      - run: gofmt -l . && test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - name: The vendored vectors (what this commit was written against)
+        run: go test ./...
+      - name: The live vectors on sharness.ai (the standard as published now)
+        run: sh conformance/fetch.sh /tmp/vectors && SHARNESS_AI_VECTORS=/tmp/vectors go test ./policy/
+      - name: A static binary
+        run: CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /tmp/sharness-ai ./cmd/sharness-ai && file /tmp/sharness-ai && ls -l /tmp/sharness-ai

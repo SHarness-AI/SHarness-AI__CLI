@@ -1,0 +1,1 @@
+{"pbp": 1, "id": "x", "hosts": ["example.com"], "files": {"read": [], "write": [], "exec": []}, "network": "none", "process": {"no_new_privs": true}}
