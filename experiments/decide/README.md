@@ -18,3 +18,18 @@ the command (a hook in the agent's own process); a **Boundary** only when it ans
 `sharness.bash`, a separate process, with the kernel rows closing the side doors. A parser is not a
 sandbox: whatever this engine misses, the kernel refuses or does not, by the policy's rows, and
 that is the whole of the protection. 99 lines, standard library only.
+
+## rehearse.py: the same question, answered by running it in a twin
+
+    python3 -I rehearse.py /path/to/workspace ../policies/p1-agent-session.json "sh install.sh"
+
+Copies the workspace to a scratch folder (`sharness.fs.disk.twin` in its cheapest form), derives
+a rehearsal policy from the given one (the twin the only writable place, `network: "none"`), runs
+the command there under `sharness-ai run` with `strace -f`, and reports what the command actually
+tried: writes inside the twin, writes refused outside it, connects refused, deletes, programs run.
+Verdict from facts: a refused write outside the workspace is **deny**; a network attempt, a delete
+or a timeout is **ask**; otherwise **allow**. Refused reads are reported, not judged: the kernel
+will refuse them in the real run too and the command went on. Run four times on 26 Oct 2026
+against a sample workspace: an edit-and-check allowed, an installer that writes `~/.bashrc` and
+fetches a binary refused with both facts, a delete asked, a network call asked. The real
+workspace was untouched every time. 82 lines, standard library, no tests; a sketch.
