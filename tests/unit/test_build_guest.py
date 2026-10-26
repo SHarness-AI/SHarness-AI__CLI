@@ -101,7 +101,7 @@ class Test_wheel:
         assert "+dev." in ver and whl.name == f"sharness_ai-{ver}-py3-none-any.whl"
         z = zipfile.ZipFile(whl)
         names = z.namelist()
-        assert "sharness_ai/cli.py" in names and "sharness_ai/policy.py" in names
+        assert "sharness_ai/cli/CLI__Main.py" in names and "sharness_ai/ui/Draw.py" in names and "sharness_ai/policy.py" in names
         record = z.read(f"sharness_ai-{ver}.dist-info/RECORD").decode().splitlines()
         for row in record:
             name, digest, size = row.split(",")

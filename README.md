@@ -23,10 +23,18 @@ in the tab, where every `sharness-ai run` is enforced. Or just [watch the kernel
 
 ```bash
 pip install git+https://github.com/SHarness-AI/SHarness-AI__CLI@dev
-sharness-ai probe                                   # what a process here can do before any policy
+sharness-ai                                         # the guide: where you are, the ladder, what to do next
 sharness-ai hello                                   # the acceptance test: six probes, six held
-sharness-ai run --policy experiments/policies/p2-tool-server.json -- my-tool   # any command, under a policy
+sharness-ai policy new my-tool.json                 # five questions write a policy; its hash is its name
+sharness-ai run --policy my-tool.json -- my-tool    # any command, under it: the plan, then the command
 ```
+
+With no arguments on a terminal, `sharness-ai` draws where you are (the kernel, Landlock, what a policy
+will do here), the four steps and which you have taken, the policy in the current directory, and a menu.
+Every screen ends with the next command; every refusal names who refused (the kernel, the page, or
+sharness-ai itself) and the row of the policy to change. On a pipe, under `NO_COLOR`, on a serial
+console or with `--plain`, the same screens are drawn in ASCII; `--json` is on every command that has
+data. The design, written before the code: [The CLI is the front door](https://sharness.ai/articles/the-cli-is-the-front-door.html).
 
 ![sharness-ai hello replayed: read allowed; two writes, a connect, a 400 MiB allocation and a wrong hash refused; result 6 of 6 held; then the caveat](docs/anim/hello-replay.svg)
 
@@ -102,21 +110,44 @@ experiments and storyboards is [sharness.ai/code/experiments](https://sharness.a
 | [the playground](https://sharness.ai/code/playground/index.html), or `experiments/browser/playground.html` | E09 | type `sharness-ai` into Pyodide (`pip install`, then hash, check, translate; `run` and `hello` refuse with no kernel) and into a shell on the Linux guest (everything, enforced); one policy hashed three ways |
 | `experiments/browser/`: `npm run node`, `npm run browser`, `sudo npm run native` | E09 | the same `hello` and `run` under a second kernel: Alpine x86 with Landlock booted by v86 in Node and in a browser tab, and the same binaries through chroot on the host kernel |
 | `sharness-ai hello` | E04 | the memo's acceptance test for one child process: read allowed, writes refused, network refused, a 400 MiB allocation under a 128 MiB cap refused, wrong hash refused. A refusal counts only when it came from the policy; an ambiguous one is checked against a control run without the policy and reported *inconclusive* if the environment refused it too. Exit 0 when nothing failed |
+| `sharness-ai policy new [FILE]`, `policy show FILE`, `policy edit FILE` | | the wizard: five questions (read, write, exec, ports, memory), every default shown before it is accepted, the policy drawn as one process with its edges, the file written, its hash and the `run` command printed; `show` draws any policy; `edit` changes one edge and shows the name change. Flags (`--write /work/out --ports 443 -y`) answer without asking, for scripts |
+| `sharness-ai components [NAME]`, `sharness-ai net` (and `bash`, `kms`, `fs`, `llm`, `launcher`) | | the operating system a process sees, drawn, with honest status: all seven designed, none built. A component's verb prints its proposed REST surface and exits 69 (unavailable) until it is runnable |
+| `sharness-ai guide [--once]` | | the no-arguments screen, for a pipe or a script |
 
 ```
 $ sharness-ai hello
 sharness-ai hello   experiment E04: the memo's acceptance test, for one child process
-policy      hello  sha256:…
-  ✔ read       expected allowed  got allowed
-  ✔ write-tmp  expected refused  got refused (PermissionError: [Errno 13] Permission denied: '/tmp/sharness-ai-hello.tmp')
-  ✔ write-cwd  expected refused  got refused (PermissionError: [Errno 13] Permission denied: 'sharness-ai-hello.tmp')
-  ✔ net        expected refused  got refused (PermissionError: [Errno 13] Permission denied)
-  ✔ memory     expected refused  got refused (MemoryError)
-  ✔ hash       expected refused  got refused
-result      6/6 held
-not covered Unix-domain sockets by path (no Landlock rule exists); the environment variables this process has (inherited by the child); UDP, unless the empty network namespace applied
-caveat      applied by this process to its own children: a Boundary for them, a Setting for whoever ran this ...
+  policy          hello   generated for this interpreter and this directory
+  ┌─ files ────────────────────────┐  ┌─ network ────────────┐  ┌─ process ────────┐
+  │ read  /bin /etc /lib /lib64 +5 │  │ connect_tcp  none    │  │ memory  128 MiB  │
+  │ write none                     │  │ UDP and Unix sockets │  │ pids    no cap   │
+  │ exec  /bin /etc /lib /lib64 +4 │  │ are not covered      │  │ no_new_privs yes │
+  └────────────────────────────────┘  └──────────────────────┘  └──────────────────┘
+  sha256:1a2917ebce3f2de38d5d63e7a6eb99173754efdf289b21c5aed2e03bdac6b324  its name: change a row and it changes
+  kernel          Landlock ABI 7 · empty network namespace: yes (uid 0)
+
+  ✔ read      /usr (listing)               allowed
+  ✔ write-tmp /tmp/…tmp (create)           refused by the kernel
+  ✔ write-cwd ./…tmp (create)              refused by the kernel
+  ✔ net       1.1.1.1:443 (connect)        refused by the kernel
+  ✔ memory    400 MiB under 128            refused by the kernel
+  ✔ hash      sha256:0000… (--expect-hash) refused by sharness-ai
+
+  result          ████████████ 6/6 held · measured 26 Oct 2026, Landlock ABI 7
+  not covered     Unix-domain sockets by path (no Landlock rule exists); the environment variables this
+                  process has (inherited by the child); UDP, unless the empty network namespace applied
+  report          sharness-ai hello --json, then paste it at https://github.com/SHarness-AI/SHarness-AI__CLI/issues/new?template=hello-report.yml
+  caveat          applied by a process to its own child: a Boundary for the child, a Setting for the parent ...
+  next            sharness-ai policy new my-tool.json   write a policy for your own tool, from five questions
 ```
+
+The code follows the sgit CLI's shape: `sharness_ai/cli/CLI__Main.py` holds one class per command group
+(`CLI__Probe`, `CLI__Policy`, `CLI__Run`, `CLI__Hello`, `CLI__Components`, `CLI__Guide`), each with `cmd_*`
+methods bound by `set_defaults(func=…)`; one place turns an exception into a sentence with a hint;
+`--debug` prints the steps with timings. `sharness_ai/ui/` draws: `Term` (where the output goes),
+`Draw` (boxes, rows, the policy as one process), `Prompt` (questions that never block a script),
+`Trace`. The engine modules (`probe`, `policy`, `run`, `landlock`, `limits`, `translate`, `hello`)
+return objects and did not move. Every file is under 300 lines; standard library only.
 
 **What is enforced, and by what.** Files and exec by [Landlock](https://docs.kernel.org/userspace-api/landlock.html)
 path rules (Linux 5.13+, through `ctypes`, no C extension); TCP by Landlock port rules (ABI 4+,

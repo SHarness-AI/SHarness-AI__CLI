@@ -39,9 +39,9 @@ def build(out: Path, ver: str = None, src: Path = None) -> Path:
     src = src or REPO / "sharness_ai"
     dist = f"sharness_ai-{ver}.dist-info"
     files = {}
-    for f in sorted(src.iterdir()):
-        if f.is_file() and f.suffix in (".py", "") and f.name != "__pycache__":
-            files[f"sharness_ai/{f.name}"] = f.read_bytes()
+    for f in sorted(src.rglob("*")):                       # the package and its subpackages (cli/, ui/)
+        if f.is_file() and f.suffix in (".py", "") and "__pycache__" not in f.parts:
+            files[f"sharness_ai/{f.relative_to(src).as_posix()}"] = f.read_bytes()
     files["sharness_ai/version"] = f"v{ver}\n".encode()
     files[f"{dist}/METADATA"] = (
         "Metadata-Version: 2.1\nName: sharness-ai\nVersion: " + ver + "\n"

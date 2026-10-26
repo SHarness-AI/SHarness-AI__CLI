@@ -118,13 +118,10 @@ def _classify(name, rc, out, err):
     return f"failed otherwise ({last[:90]})"
 
 
-def hello(as_json=False) -> int:
-    from sharness_ai.run import EXIT_APPLY, unavailable
-    reason = unavailable()
-    if reason:
-        print(json.dumps({"experiment": "E04 hello", "refused": reason}) if as_json else
-              f"sharness-ai hello   refused: {reason}. Nothing ran.")
-        return EXIT_APPLY
+def measure() -> dict:
+    """Run the six probes under the hello policy and return the result: the object `--json`
+    prints, which the CLI's screens and the machines page both draw from. Caller checks
+    run.unavailable() first: this needs a kernel."""
     policy = hello_policy()
     h = policy_hash(policy)
     abi = landlock.abi()
@@ -142,32 +139,46 @@ def hello(as_json=False) -> int:
     held = [n for n, got, _ in results if got.startswith(EXPECT[n])]
     inconclusive = [n for n, got, _ in results if got.startswith("inconclusive")]
     failed = [n for n, got, _ in results if n not in held and n not in inconclusive]
-    netns_possible = os.geteuid() == 0
+    return {
+        "experiment": "E04 hello", "policy_id": policy["id"], "policy_hash": h, "policy": policy,
+        "landlock_abi": abi, "euid": os.geteuid(),
+        "results": [{"probe": n, "expected": EXPECT[n], "got": g, "exit": rc} for n, g, rc in results],
+        "held": len(held), "inconclusive": len(inconclusive), "failed": len(failed), "of": len(results),
+        "not_covered": NOT_COVERED,
+        "report": REPORT_URL,
+    }
+
+
+def hello(as_json=False) -> int:
+    """The plain text and JSON forms, as the first release printed them. The CLI's screens
+    (sharness_ai.cli) draw measure() their own way."""
+    from sharness_ai.run import EXIT_APPLY, unavailable
+    reason = unavailable()
+    if reason:
+        print(json.dumps({"experiment": "E04 hello", "refused": reason}) if as_json else
+              f"sharness-ai hello   refused: {reason}. Nothing ran.")
+        return EXIT_APPLY
+    m = measure()
     if as_json:
-        print(json.dumps({
-            "experiment": "E04 hello", "policy_id": policy["id"], "policy_hash": h, "policy": policy,
-            "landlock_abi": abi, "euid": os.geteuid(),
-            "results": [{"probe": n, "expected": EXPECT[n], "got": g, "exit": rc} for n, g, rc in results],
-            "held": len(held), "inconclusive": len(inconclusive), "failed": len(failed), "of": len(results),
-            "not_covered": NOT_COVERED,
-            "report": REPORT_URL,
-        }, indent=1))
+        print(json.dumps(m, indent=1))
     else:
+        policy, abi = m["policy"], m["landlock_abi"]
         print("sharness-ai hello   experiment E04: the memo's acceptance test, for one child process")
-        print(f"policy      {policy['id']}  {h}")
+        print(f"policy      {policy['id']}  {m['policy_hash']}")
         print(f"            read-only: {', '.join(policy['files']['read'])}")
         print(f"            write: none · exec: system and Python · network: none · memory: {MAX_MEMORY_MB} MiB")
-        netns = ("yes (uid 0)" if netns_possible else
+        netns = ("yes (uid 0)" if m["euid"] == 0 else
                  "only if an unprivileged user namespace is allowed; else Landlock denies TCP (not UDP)")
         print(f"kernel      Landlock ABI {abi or 'none'} · empty network namespace: {netns}")
-        for n, got, _ in results:
-            mark = "✔" if got.startswith(EXPECT[n]) else ("?" if got.startswith("inconclusive") else "✗")
-            print(f"  {mark} {n:<10} expected {EXPECT[n]:<8} got {got}")
-        tail = f", {len(inconclusive)} inconclusive" if inconclusive else ""
-        print(f"result      {len(held)}/{len(results)} held{tail}")
+        for r in m["results"]:
+            got = r["got"]
+            mark = "✔" if got.startswith(r["expected"]) else ("?" if got.startswith("inconclusive") else "✗")
+            print(f"  {mark} {r['probe']:<10} expected {r['expected']:<8} got {got}")
+        tail = f", {m['inconclusive']} inconclusive" if m["inconclusive"] else ""
+        print(f"result      {m['held']}/{m['of']} held{tail}")
         print(f"not covered {NOT_COVERED}")
         print(f"report      run again with --json and paste it at {REPORT_URL}: every machine is a new row")
         print("caveat      applied by this process to its own children: a Boundary for them, a Setting for "
               "whoever ran this, who could have skipped it. The launcher that makes it a Boundary for the "
               "agent too is the design: https://sharness.ai/design/policies/index.html#2-who-enforces-decides-the-barrier-kind")
-    return 0 if not failed else 1
+    return 0 if not m["failed"] else 1

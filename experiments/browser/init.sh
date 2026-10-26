@@ -21,6 +21,7 @@ net_up() {
     echo "network     eth0 192.168.86.100/24 via 192.168.86.1: the page's fetch backend, which is also its DNS"
 }
 echo
+export NO_COLOR=1   # the serial console shows escape codes as text; box characters are fine (UTF-8)
 echo "SHARNESS-GUEST-UP $(uname -r) $(uname -m)"
 net_up
 echo "--- landlock in dmesg:"
