@@ -22,6 +22,7 @@ net_up() {
 }
 echo
 export NO_COLOR=1   # the serial console shows escape codes as text; box characters are fine (UTF-8)
+ifconfig lo 127.0.0.1 up 2>/dev/null   # loopback: the doors listen on it
 echo "SHARNESS-GUEST-UP $(uname -r) $(uname -m)"
 net_up
 echo "--- landlock in dmesg:"
@@ -69,5 +70,12 @@ try:
 except MemoryError:
     print('200 MiB refused under a 64 MiB cap: MemoryError')"
 sharness-ai run --policy /work/policies/p2-tool-server.json -- sh -c 'echo x > /work/out.txt 2>&1 || echo "write to /work refused"; echo "read allowed: $(head -c 4 /etc/passwd)..."'
+echo "--- E11 the first door: a session by openssl, sharness.fs.disk.twin under mutual TLS, the app calling it, a key refused"
+sharness-ai session new --dir /tmp/session --roles app fs 2>&1 | head -3
+sharness-ai fs serve --target disk.twin --session /tmp/session --port 7301 >/tmp/fs.log 2>&1 &
+sleep 3
+sharness-ai fs hello --session /tmp/session --port 7301
+echo "print('hi')" | sharness-ai fs put src/main.py --session /tmp/session --port 7301
+printf '%s %s-----\n' '-----BEGIN' 'PRIVATE KEY' | sharness-ai fs put id_rsa --session /tmp/session --port 7301
 echo "SHARNESS-DONE"
 poweroff -f

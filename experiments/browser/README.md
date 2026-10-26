@@ -134,3 +134,11 @@ A booted-state snapshot so
 the page opens in seconds rather than after a full boot. A non-root user in the guest, so the
 network probe takes Landlock's port rule rather than the namespace. TLS from inside the guest (the page would have to be a trusted CA to the guest, or relay raw TCP over a WebSocket to a server, which is a different trust model). A kernel without Landlock as
 the negative control. `memfd_secret`'s 32-bit caveat is untested (it is probed, not used).
+
+## The first door inside the guest (E11)
+
+The scripted run ends with the door: `sharness-ai session new` (the guest carries `openssl`), `sharness-ai fs serve
+--target disk.twin` on loopback (`ifconfig lo up` in `init.sh`), `fs hello` over mutual TLS, a write allowed, a
+private key refused. Measured 26 Oct 2026 in Node (v86, one emulated core): the whole scripted run 194.8 s wall
+clock, of which the door's five commands about 40 s; `hello` 6 of 6 as before. The playground's Linux tab has
+chips for the same commands.

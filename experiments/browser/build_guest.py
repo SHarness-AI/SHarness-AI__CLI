@@ -42,6 +42,7 @@ PACKAGES = [
     "libssl3-3.5.9-r0", "libcrypto3-3.5.9-r0", "sqlite-libs-3.53.4-r0", "readline-8.3.1-r0",
     "libncursesw-6.5_p20251123-r0", "ncurses-terminfo-base-6.5_p20251123-r0",
     "libpanelw-6.5_p20251123-r0", "libgcc-15.2.0-r2", "libstdc++-15.2.0-r2",
+    "openssl-3.5.9-r0",                        # the openssl program: sharness-ai session new issues certificates with it
 ]
 KERNEL_PACKAGE = "linux-virt-6.18.58-r0"      # CONFIG_SECURITY_LANDLOCK=y, landlock first in CONFIG_LSM
 
