@@ -189,3 +189,16 @@ class Test_L5_hardening:
             L5.compile(bad)
         ok = {"pbp": 1, "level": 5, "contain": {"agent": "my-agent.v2", "workspace": "/w"}}
         assert L5.compile(ok)["document"]["id"] == "my-agent.v2"
+
+
+class Test_Review_2_levels:
+    def test_ports_only_at_level_3_is_reported_as_passed_through(self):
+        doc = {"pbp": 1, "level": 3, "id": "t", "files": {"read": ["/usr"], "write": [], "exec": ["/usr"]},
+               "network": {"connect_tcp_ports": [8443]}, "process": {"no_new_privs": True}}
+        r = L3.compile(doc)
+        assert r["passthrough"] and r["document"]["network"] == {"connect_tcp_ports": [8443]}
+
+    def test_level_4_sites_order_does_not_change_the_hash(self):
+        a = L4.compile({"pbp": 1, "level": 4, "profile": "coding-agent", "blanks": {"workspace": "/w", "sites": ["b.org", "a.org"]}})
+        b = L4.compile({"pbp": 1, "level": 4, "profile": "coding-agent", "blanks": {"workspace": "/w", "sites": ["a.org", "b.org"]}})
+        assert canonical(a["document"]) == canonical(b["document"])

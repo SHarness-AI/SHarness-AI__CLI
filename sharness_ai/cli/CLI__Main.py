@@ -175,7 +175,7 @@ class CLI__Main:
         ses = se.add_subparsers(dest="session_cmd", metavar="action")
         x = ses.add_parser("new", help="issue the certificates and destroy the CA key")
         x.add_argument("--dir", default=Session.default_dir(), help="where the session lives")
-        x.add_argument("--roles", nargs="*", help="the roles (default: app fs)")
+        x.add_argument("--roles", nargs="*", help="the roles (default: app fs launcher)")
         x.add_argument("--days", type=int, default=1)
         x.set_defaults(func=self.session.cmd_new)
         x = ses.add_parser("show", help="the session's identities")

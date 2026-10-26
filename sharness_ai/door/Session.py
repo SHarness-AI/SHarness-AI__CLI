@@ -45,18 +45,20 @@ class Session:
         self.dir, self.id, self.roles, self.created = directory, session_id, tuple(roles), created
 
     @classmethod
-    def new(cls, directory: str, roles=("app", "fs"), days: int = 1) -> "Session":
+    def new(cls, directory: str, roles=("app", "fs", "launcher"), days: int = 1) -> "Session":
         for r in roles:
             if r not in ROLES:
                 raise SessionError(f"unknown role {r!r}; the roles are {', '.join(ROLES)}")
         if not 1 <= days <= 3650:
             raise SessionError("days must be 1 to 3650")
         ssl_bin = openssl()
+        if os.path.isdir(directory) and os.listdir(directory) and not os.path.isfile(os.path.join(directory, "session.json")):
+            raise SessionError(f"{directory} is not empty and is not a session: a session gets a directory of its own")
         os.makedirs(directory, mode=0o700, exist_ok=True)
-        os.chmod(directory, 0o700)
+        os.chmod(directory, 0o700)                          # the session's own directory, nothing else is touched
         sid = secrets.token_hex(8)
         ec = ["-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256", "-nodes"]
-        old_umask = os.umask(0o077)                         # every key is born 0600; no window to tighten
+        old_umask = os.umask(0o077)                         # openssl 3 writes -keyout 0600 already; this makes it so on any version
         try:
             _run([ssl_bin, "req", "-x509", *ec, "-keyout", "ca.key", "-out", "ca.crt", "-days", str(days),
                   "-subj", f"/CN=sharness session {sid}", "-addext", "basicConstraints=critical,CA:TRUE,pathlen:0",
@@ -75,8 +77,10 @@ class Session:
                     os.unlink(os.path.join(directory, leftover))
                 except OSError:
                     pass
-        for name in os.listdir(directory):
-            os.chmod(os.path.join(directory, name), 0o600 if name.endswith(".key") else 0o644)
+        for role in roles:
+            os.chmod(os.path.join(directory, f"{role}.key"), 0o600)
+            os.chmod(os.path.join(directory, f"{role}.crt"), 0o644)
+        os.chmod(os.path.join(directory, "ca.crt"), 0o644)
         created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         with open(os.path.join(directory, "session.json"), "w", encoding="utf-8") as f:
             json.dump({"schema": "sharness-ai.session/v0", "id": sid, "roles": list(roles), "created": created,

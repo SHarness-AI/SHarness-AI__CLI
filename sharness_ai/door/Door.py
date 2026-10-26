@@ -43,6 +43,8 @@ class Door:
         if method == "GET" and path == "/v0/policy":
             return Verdict.ok(policy=self.policy, hash=policy_hash(self.policy), contract=self.contract.describe())
         if method == "GET" and path == "/v0/log":
+            if peer != "launcher":
+                return Verdict.refuse("the log is the launcher's to read; a caller sees only its own verdicts", "the edge matrix")
             return Verdict.ok(lines=self.audit.dump())
         route, params = self.contract.match(method, path)
         if route is None:
@@ -57,6 +59,15 @@ class Door:
             protocol_version = "HTTP/1.0"                 # one connection per request, as the design says
             server_version = "sharness-ai"
             timeout = 30                                  # a caller that stalls does not hold a thread for ever
+            disable_nagle_algorithm = True                # TCP_NODELAY: the design's 3.2 ms, not 46 (Architecture)
+
+            def setup(self):
+                """The TLS handshake happens here, in this connection's own thread and under the timeout, so
+                an idle or hostile TCP connection never holds the accept loop; a failed handshake raises and
+                handle_error writes the audit line."""
+                self.request.settimeout(self.timeout)
+                self.request = door.ctx.wrap_socket(self.request, server_side=True)
+                super().setup()
 
             def _answer(self, v):
                 out = json.dumps(v.payload()).encode()
@@ -67,23 +78,24 @@ class Door:
                 self.wfile.write(out)
 
             def _do(self):
+                peer = peer_role(self.connection)
                 try:
                     n = int(self.headers.get("Content-Length") or 0)
                     if n < 0:
                         raise ValueError
                 except ValueError:
                     v = Verdict.refuse("Content-Length is not a number", status=400)
-                    door.audit.record(peer_role(self.connection), self.command, self.path, 0, v)
+                    door.audit.record(peer, self.command, self.path, 0, v)
                     self._answer(v)
                     return
-                if n > MAX_BODY:
+                if (peer, door.role) not in EDGES:            # the edge, before a single byte of body is read
+                    v = Verdict.refuse(f"edge {peer or '?'}->{door.role} is not in the manifest", "the edge matrix")
+                elif n > MAX_BODY:
                     v = Verdict.refuse(f"body over {MAX_BODY} bytes", status=413)
-                    body = b""
                 else:
                     body = self.rfile.read(n) if n else b""
-                    peer = peer_role(self.connection)
                     v = door.dispatch(peer, self.command, self.path, body)
-                door.audit.record(peer_role(self.connection), self.command, self.path, n, v)
+                door.audit.record(peer, self.command, self.path, n, v)
                 self._answer(v)
 
             do_GET = do_PUT = do_POST = do_DELETE = _do
@@ -98,8 +110,8 @@ class Door:
                 e = sys.exc_info()[1]
                 door.audit.record("?", "-", "-", 0, Verdict.refuse(f"connection error: {type(e).__name__}", status=0))
 
-        self.server = Server((self.host, self.port), Handler)
-        self.server.socket = context(self.session, self.role, server=True).wrap_socket(self.server.socket, server_side=True)
+        self.ctx = context(self.session, self.role, server=True)
+        self.server = Server((self.host, self.port), Handler)   # the listener stays plain; each connection wraps itself
         self.port = self.server.server_address[1]
         if background:
             threading.Thread(target=self.server.serve_forever, daemon=True).start()

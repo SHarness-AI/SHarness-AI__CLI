@@ -13,7 +13,7 @@ class CLI__Session:
     def cmd_new(self, args) -> int:
         m = self.main
         t, d = m.term, m.draw
-        roles = tuple(args.roles or ("app", "fs"))
+        roles = tuple(args.roles or ("app", "fs", "launcher"))
         try:
             s = Session.new(args.dir, roles, days=args.days)
         except SessionError as e:

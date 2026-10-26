@@ -7,6 +7,7 @@ directory, then rename, both by directory descriptor), never executable, and nev
 at the final component either."""
 import errno
 import os
+import secrets
 import stat
 
 from sharness_ai.fs.Store import OutsideRoot, Store
@@ -16,6 +17,13 @@ try:
     DIR_FLAGS |= os.O_CLOEXEC
 except AttributeError:
     pass
+
+
+def _write_all(fd: int, data: bytes) -> None:
+    view = memoryview(data)
+    while view:
+        n = os.write(fd, view)
+        view = view[n:]
 
 
 class Disk(Store):
@@ -45,9 +53,15 @@ class Disk(Store):
             os.close(fd)
             raise
         except OSError as e:
+            if e.errno in (errno.ELOOP, errno.ENOTDIR):     # O_DIRECTORY|O_NOFOLLOW on a link gives ENOTDIR on Linux
+                try:
+                    st = os.stat(part, dir_fd=fd, follow_symlinks=False)
+                    kind = "a symbolic link" if stat.S_ISLNK(st.st_mode) else "a file, not a directory"
+                except OSError:
+                    kind = "a symbolic link or a file"
+                os.close(fd)
+                raise OutsideRoot(f"{part} in {rel_dir} is {kind}") from None
             os.close(fd)
-            if e.errno in (errno.ELOOP, errno.ENOTDIR):       # a link where a directory should be
-                raise OutsideRoot(f"a component of {rel_dir} is a symbolic link or not a directory") from None
             raise
 
     @staticmethod
@@ -97,20 +111,23 @@ class Disk(Store):
     def write(self, rel: str, data: bytes) -> None:
         d, name = self._split(rel)
         dfd = self._dir(d, create=True)
-        tmp = f".sharness-fs-{os.getpid()}-{name}.tmp"
+        tmp = f".sharness-fs-{secrets.token_hex(8)}.tmp"      # unique per call: two writers to one name never collide
+        made = False
         try:
             fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o644, dir_fd=dfd)
+            made = True
             try:
-                os.write(fd, data)
+                _write_all(fd, data)
                 os.fchmod(fd, 0o644)                           # never executable
             finally:
                 os.close(fd)
             os.rename(tmp, name, src_dir_fd=dfd, dst_dir_fd=dfd)   # atomic; replaces a link at `name` without following it
         except BaseException:
-            try:
-                os.unlink(tmp, dir_fd=dfd)
-            except OSError:
-                pass
+            if made:
+                try:
+                    os.unlink(tmp, dir_fd=dfd)
+                except OSError:
+                    pass
             raise
         finally:
             os.close(dfd)
@@ -118,7 +135,7 @@ class Disk(Store):
     def append(self, rel: str, data: bytes) -> None:
         fd = self._open_file(rel, os.O_WRONLY | os.O_APPEND | os.O_CREAT, create_dirs=True)
         try:
-            os.write(fd, data)
+            _write_all(fd, data)
         finally:
             os.close(fd)
 

@@ -98,6 +98,8 @@ class L4:
         for k in ("read", "write", "exec"):
             if isinstance(out.get("files", {}).get(k), list):
                 out["files"][k] = sorted(set(out["files"][k]))
+        if isinstance(out.get("network"), dict) and isinstance(out["network"].get("sites"), list):
+            out["network"]["sites"] = sorted(set(out["network"]["sites"]))
         if isinstance(out.get("network"), dict) and not out["network"].get("sites") and not out["network"].get("connect_tcp_ports"):
             out["network"] = "none"
         if not blanks.get("secrets"):

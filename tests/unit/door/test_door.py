@@ -17,7 +17,7 @@ needs_openssl = pytest.mark.skipif(not shutil.which("openssl"), reason="needs op
 def session(tmp_path):
     if not shutil.which("openssl"):
         pytest.skip("needs openssl")
-    return Session.new(str(tmp_path / "s"), ("app", "fs", "net"))
+    return Session.new(str(tmp_path / "s"), ("app", "fs", "net", "launcher"))
 
 
 class Test_Session:
@@ -60,7 +60,9 @@ class Test_Door:
             c = Client(session, "app", "fs", port)
             status, data = c.request("POST", "/v0/nope", b"x")
             assert status == 404 and "not in what this door accepts" in data["reason"]
-            status, log = c.request("GET", "/v0/log")
+            status, _ = c.request("GET", "/v0/log")
+            assert status == 403                                   # the log is the launcher's
+            status, log = Client(session, "launcher", "fs", port).request("GET", "/v0/log")
             assert status == 200 and any(x["path"] == "/v0/nope" and not x["allowed"] for x in log["lines"])
             assert all("body" not in x for x in log["lines"])
         finally:
@@ -133,3 +135,48 @@ class Test_Session_hardening:
         assert not (tmp_path / "t" / "ca.key").exists()
         with pytest.raises(SessionError):
             Session.new(str(tmp_path / "u"), ("app",), days=0)
+
+
+class Test_Review_2:
+    """The independent review of 26 Oct 2026: the regex budget, an idle connection, a non-session directory."""
+
+    def test_secret_shapes_are_linear_in_the_body(self):
+        import time
+        body = b"A" * 1_000_000
+        t0 = time.monotonic()
+        assert Rows.secret_in(body) is None
+        assert time.monotonic() - t0 < 0.5, "the shapes must scan a megabyte in well under a second"
+        assert Rows.secret_in(b"x" * 30 + b":12345678-1234-1234-1234-123456789abc") == "a vault key"
+
+    def test_an_idle_tcp_connection_does_not_block_the_next_caller_and_a_bad_hello_is_audited(self, session):
+        import socket
+        door = FS(session, Twin())
+        port = door.serve(background=True)
+        try:
+            idle = socket.create_connection(("127.0.0.1", port))      # says nothing, holds the connection
+            plain = socket.create_connection(("127.0.0.1", port))
+            plain.sendall(b"GET / HTTP/1.0\r\n\r\n")              # no TLS at all: the handshake fails
+            plain.close()
+            status, data = Client(session, "app", "fs", port).request("GET", "/v0/hello")
+            assert status == 200 and data["door"] == "sharness.fs"
+            idle.close()
+            status, log = Client(session, "launcher", "fs", port).request("GET", "/v0/log")
+            assert any("connection error" in x.get("reason", "") for x in log["lines"])
+        finally:
+            door.stop()
+
+    def test_refuse_secrets_and_the_cap_cannot_be_lifted_by_a_row(self):
+        rows = Rows([{"resource": "/", "op": "*", "where": {"refuse_secrets": False, "max_bytes": 1 << 40}}], {"max_bytes": 1 << 40})
+        assert not rows.verdict("write", "/k", b"-----BEGIN " + b"PRIVATE KEY-----").allowed
+        assert rows.defaults["max_bytes"] == 64 << 20
+
+    @needs_openssl
+    def test_a_non_empty_directory_that_is_not_a_session_is_refused(self, tmp_path):
+        d = tmp_path / "project"
+        d.mkdir()
+        (d / "tool.sh").write_text("#!/bin/sh\n")
+        (d / "tool.sh").chmod(0o755)
+        with pytest.raises(SessionError):
+            Session.new(str(d), ("app", "fs"))
+        import stat
+        assert stat.S_IMODE((d / "tool.sh").stat().st_mode) == 0o755

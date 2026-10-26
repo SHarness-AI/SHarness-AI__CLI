@@ -76,9 +76,9 @@ class L3:
         out = {k: v for k, v in doc.items() if k != "level"}
         unheld, passthrough = [], []
         net = doc.get("network")
-        if isinstance(net, dict) and "sites" in net:
+        if isinstance(net, dict):
             ports = set()
-            for s in net["sites"]:
+            for s in net.get("sites", []):
                 host, port = cls.site(s)
                 ports.add(port)
                 unheld.append(f"{host}: held as port {port}; the host name is not held until sharness.net runs here")

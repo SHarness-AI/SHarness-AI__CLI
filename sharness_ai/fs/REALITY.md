@@ -11,6 +11,8 @@
   `max_bytes`, `append_only`.
 - `vectors/vectors.json`: the conformance vectors, run against the twin first, then the disk.
 
+Not covered by refuse_secrets, and said so: a secret in another encoding (base64, UTF-16), or split across two appends; the shapes are byte regexes on one body. Not covered by within_root: a hard link inside the root to a file outside, which only another writer in the root could make. `GET /v0/log` is the launcher's; a caller sees its own verdicts.
+
 Not here: rename, content by schema, a section by marker, count per interval, a transparent mode (bind or
 FUSE mount), `fs.s3` or any other target, the door's own uid (the launcher's), `GET /v0/log` with filters.
 Dependency exceptions taken: none.

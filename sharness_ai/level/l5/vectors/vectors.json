@@ -155,7 +155,7 @@
      "workspace": "/w"
     }
    },
-   "reason": "level 5: contain.agent must name the agent (a word)"
+   "reason": "level 5: contain.agent must name the agent: letters, digits, dot, dash, underscore, at most 64"
   },
   {
    "name": "relative-workspace",

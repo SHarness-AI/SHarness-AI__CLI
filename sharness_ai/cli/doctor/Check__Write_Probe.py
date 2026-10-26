@@ -32,8 +32,11 @@ class Check__Write_Probe:
             code = f"open({target!r}, 'w').close(); print('wrote')"
             env = dict(os.environ, PYTHONPATH=pkg_parent)
             cmd = [sys.executable, *RUNNER_FLAGS, "-m", "sharness_ai", "run", "--policy", pp, "--", sys.executable, *PROBE_FLAGS, "-c", code]
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env)  # noqa: S603 - argv list, this interpreter, our code
-            rc, out, err = proc.returncode, proc.stdout.strip(), proc.stderr.strip()
+            try:
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60, env=env)  # noqa: S603 - argv list, this interpreter, our code
+                rc, out, err = proc.returncode, proc.stdout.strip(), proc.stderr.strip()
+            except subprocess.TimeoutExpired:
+                rc, out, err = -1, "", "the probe did not finish in 60 s"
             wrote = os.path.exists(target)
         r.details = {"exit": rc, "stderr_tail": err[-200:]}
         if wrote or out.endswith("wrote"):

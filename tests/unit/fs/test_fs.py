@@ -198,3 +198,36 @@ class Test_Hardening:
             assert r.status == 400
         finally:
             door.stop()
+
+
+class Test_Review_2_fs:
+    def test_two_writers_to_one_name_both_land(self, session, tmp_path):
+        import threading
+        door = FS(session, Disk(str(tmp_path / "root")))
+        port = door.serve(background=True)
+        failures = []
+
+        def worker(tag):
+            c = Client(session, "app", "fs", port)
+            for i in range(40):
+                status, data = c.request("PUT", "/v0/files/same.txt", f"{tag}{i}".encode())
+                if status != 201:
+                    failures.append((tag, i, status, data))
+        try:
+            ts = [threading.Thread(target=worker, args=(t,)) for t in ("a", "b")]
+            [t.start() for t in ts]
+            [t.join() for t in ts]
+        finally:
+            door.stop()
+        assert failures == []
+        assert (tmp_path / "root" / "same.txt").read_text()[0] in "ab"
+        assert not [p for p in (tmp_path / "root").iterdir() if p.name.startswith(".sharness-fs-")]
+
+    def test_a_long_file_name_is_fine(self, session, tmp_path):
+        door = FS(session, Disk(str(tmp_path / "root")))
+        port = door.serve(background=True)
+        try:
+            status, _ = Client(session, "app", "fs", port).request("PUT", "/v0/files/" + "n" * 240, b"x")
+            assert status == 201
+        finally:
+            door.stop()

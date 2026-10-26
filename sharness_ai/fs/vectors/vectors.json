@@ -166,11 +166,12 @@
    }
   },
   {
-   "name": "the log of this run",
+   "name": "the log is the launcher's: refused to the app",
    "method": "GET",
    "path": "/v0/log",
    "expect": {
-    "status": 200
+    "status": 403,
+    "reason": "the launcher's"
    }
   }
  ],

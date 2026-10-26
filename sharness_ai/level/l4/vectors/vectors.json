@@ -42,9 +42,9 @@
     },
     "network": {
      "sites": [
+      "api.anthropic.com",
       "github.com",
-      "pypi.org",
-      "api.anthropic.com"
+      "pypi.org"
      ]
     },
     "process": {
@@ -54,7 +54,7 @@
     },
     "level": 3
    },
-   "expands_to_hash": "sha256:ccfa64bdfef0d0c8acf01ae37feb0aec294b64986b7cc597fe4451684b109a6e"
+   "expands_to_hash": "sha256:3f10ab8ee10cee7e1a5d4837dc134f1e72701c888d4aad5f39b0f9af6b793b16"
   },
   {
    "name": "profile-hello-world-defaults",
