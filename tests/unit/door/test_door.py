@@ -94,7 +94,7 @@ class Test_Contract_and_Rows:
         assert not v.allowed and v.row == "append_only /ledger.txt"
         assert not rows.verdict("delete", "/ledger.txt").allowed
         assert not rows.verdict("write", "/notes/a.txt", b"x" * 11).allowed and rows.verdict("write", "/notes/a.txt", b"x" * 10).allowed
-        v = rows.verdict("write", "/any.txt", b"-----BEGIN PRIVATE KEY-----")
+        v = rows.verdict("write", "/any.txt", b"-----BEGIN " + b"PRIVATE KEY-----")      # split: the tree holds no key shape in clear
         assert not v.allowed and "a private key" in v.reason
         assert not rows.verdict("write", "/k", b"sgit_private_vault_abc").allowed
         assert rows.verdict("write", "/ok.txt", b"plain text").allowed

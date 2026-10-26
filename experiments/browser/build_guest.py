@@ -62,6 +62,7 @@ SHA256 = {
     "gdbm-1.26-r0.apk":                      "e4a571f192b4e310b9188efb03afddf1c532eb3a5d4dc2cca2945a77613450b3",
     "libbz2-1.0.8-r6.apk":                   "ecd3e0b59dc6e213cb2f4ca0c1e5262ffbfb2b4c3f49642cb292c407393aba62",
     "libcrypto3-3.5.9-r0.apk":               "2dd6a2737bd3b42a6c17827d742bebbc77747e02c1b8629f0c561511adcd3127",
+    "openssl-3.5.9-r0.apk":                  "be17c25ce662f472ead2f38419d8e3ff896a717870b66064d529e2265025a46a",   # sharness-ai session new issues the door's certificates with it
     "libexpat-2.9.0-r0.apk":                 "b8fe248a7ed67e5439467fb2be3b9b0111855fad5251405953207bdb3963b73b",
     "libffi-3.5.2-r0.apk":                   "96aa9d0822f1c743ac5650bd509781cacac92c003a0445c7fdd990a7120a014e",
     "libgcc-15.2.0-r2.apk":                  "ffd1f0472d36b8178499769235f83204421f905515ecf3726f919503254ec259",

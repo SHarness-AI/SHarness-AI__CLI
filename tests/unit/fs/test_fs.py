@@ -109,7 +109,7 @@ except PermissionError as e:
 s = Session.load({str(tmp_path / 's')!r})
 status, data = Client(s, 'app', 'fs', {port}).request('PUT', '/v0/files/via-door.txt', b'hello')
 print('door:', status)
-status, data = Client(s, 'app', 'fs', {port}).request('PUT', '/v0/files/key.txt', b'-----BEGIN PRIVATE KEY-----')
+status, data = Client(s, 'app', 'fs', {port}).request('PUT', '/v0/files/key.txt', b'-----BEGIN ' + b'PRIVATE KEY-----')
 print('door key:', status, data.get('reason'))
 """
             r = subprocess.run([sys.executable, "-P", "-s", "-m", "sharness_ai", "run", "--policy", str(pp), "--quiet", "--",

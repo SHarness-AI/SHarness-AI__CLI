@@ -1,30 +1,198 @@
 {
  "schema": "sharness-ai.door-vectors/v0",
  "door": "sharness.fs",
- "run_against": ["sharness.fs.disk.twin", "sharness.fs.disk"],
+ "run_against": [
+  "sharness.fs.disk.twin",
+  "sharness.fs.disk"
+ ],
  "vectors": [
-  {"name": "hello says the door, its targets and the caveat", "method": "GET", "path": "/v0/hello", "expect": {"status": 200}},
-  {"name": "a write under the root", "method": "PUT", "path": "/v0/files/src/main.py", "body": "print('hi')\n", "expect": {"status": 201}},
-  {"name": "read it back", "method": "GET", "path": "/v0/files/src/main.py", "expect": {"status": 200}},
-  {"name": "a path that climbs out", "method": "PUT", "path": "/v0/files/../../etc/passwd", "body": "x", "expect": {"status": 403, "reason": "outside the root"}},
-  {"name": "an absolute path", "method": "PUT", "path": "/v0/files//etc/passwd", "body": "x", "expect": {"status": 403, "reason": "outside the root"}},
-  {"name": "a private key is refused", "method": "PUT", "path": "/v0/files/id_rsa", "body": "-----BEGIN PRIVATE KEY-----\nMIIE\n", "expect": {"status": 403, "reason": "a private key"}},
-  {"name": "a clear vault key is refused", "method": "PUT", "path": "/v0/files/.sg_vault/local/vault_key", "body": "sgit_private_vault_abcdef0123456789", "expect": {"status": 403, "reason": "a clear vault key"}},
-  {"name": "an API token is refused", "method": "PUT", "path": "/v0/files/notes.txt", "body": "token: sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", "expect": {"status": 403, "reason": "an API token"}},
-  {"name": "append to the ledger", "method": "POST", "path": "/v0/files/ledger.txt/append", "body": "2026-10-26 +10\n", "expect": {"status": 201}},
-  {"name": "a rewrite of the ledger is refused: append_only", "method": "PUT", "path": "/v0/files/ledger.txt", "body": "0\n", "expect": {"status": 403, "reason": "append_only"}},
-  {"name": "deleting the ledger is refused: append_only", "method": "DELETE", "path": "/v0/files/ledger.txt", "expect": {"status": 403, "reason": "append_only"}},
-  {"name": "over max_bytes on notes", "method": "PUT", "path": "/v0/files/notes/big.txt", "body": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "expect": {"status": 403, "reason": "max_bytes"}},
-  {"name": "a method the door does not accept", "method": "POST", "path": "/v0/files/src/main.py", "body": "x", "expect": {"status": 404, "reason": "not in what this door accepts"}},
-  {"name": "delete a file", "method": "DELETE", "path": "/v0/files/src/main.py", "expect": {"status": 204}},
-  {"name": "deleting it again: no such file", "method": "DELETE", "path": "/v0/files/src/main.py", "expect": {"status": 404}},
-  {"name": "mkdir", "method": "POST", "path": "/v0/mkdir", "body": "{\"path\": \"out\"}", "expect": {"status": 201}},
-  {"name": "the policy and its hash", "method": "GET", "path": "/v0/policy", "expect": {"status": 200}},
-  {"name": "the log of this run", "method": "GET", "path": "/v0/log", "expect": {"status": 200}}
+  {
+   "name": "hello says the door, its targets and the caveat",
+   "method": "GET",
+   "path": "/v0/hello",
+   "expect": {
+    "status": 200
+   }
+  },
+  {
+   "name": "a write under the root",
+   "method": "PUT",
+   "path": "/v0/files/src/main.py",
+   "body": "print('hi')\n",
+   "expect": {
+    "status": 201
+   }
+  },
+  {
+   "name": "read it back",
+   "method": "GET",
+   "path": "/v0/files/src/main.py",
+   "expect": {
+    "status": 200
+   }
+  },
+  {
+   "name": "a path that climbs out",
+   "method": "PUT",
+   "path": "/v0/files/../../etc/passwd",
+   "body": "x",
+   "expect": {
+    "status": 403,
+    "reason": "outside the root"
+   }
+  },
+  {
+   "name": "an absolute path",
+   "method": "PUT",
+   "path": "/v0/files//etc/passwd",
+   "body": "x",
+   "expect": {
+    "status": 403,
+    "reason": "outside the root"
+   }
+  },
+  {
+   "name": "a private key is refused",
+   "method": "PUT",
+   "path": "/v0/files/id_rsa",
+   "expect": {
+    "status": 403,
+    "reason": "a private key"
+   },
+   "body_b64": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUUK",
+   "note": "the body is base64 so that no secret-shaped string sits in the tree in clear; the door sees the bytes"
+  },
+  {
+   "name": "a clear vault key is refused",
+   "method": "PUT",
+   "path": "/v0/files/.sg_vault/local/vault_key",
+   "expect": {
+    "status": 403,
+    "reason": "a clear vault key"
+   },
+   "body_b64": "c2dpdF9wcml2YXRlX3ZhdWx0X2FiY2RlZjAxMjM0NTY3ODk=",
+   "note": "the body is base64 so that no secret-shaped string sits in the tree in clear; the door sees the bytes"
+  },
+  {
+   "name": "an API token is refused",
+   "method": "PUT",
+   "path": "/v0/files/notes.txt",
+   "expect": {
+    "status": 403,
+    "reason": "an API token"
+   },
+   "body_b64": "dG9rZW46IHNrLUFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaMDEyMzQ1Njc4OQ==",
+   "note": "the body is base64 so that no secret-shaped string sits in the tree in clear; the door sees the bytes"
+  },
+  {
+   "name": "append to the ledger",
+   "method": "POST",
+   "path": "/v0/files/ledger.txt/append",
+   "body": "2026-10-26 +10\n",
+   "expect": {
+    "status": 201
+   }
+  },
+  {
+   "name": "a rewrite of the ledger is refused: append_only",
+   "method": "PUT",
+   "path": "/v0/files/ledger.txt",
+   "body": "0\n",
+   "expect": {
+    "status": 403,
+    "reason": "append_only"
+   }
+  },
+  {
+   "name": "deleting the ledger is refused: append_only",
+   "method": "DELETE",
+   "path": "/v0/files/ledger.txt",
+   "expect": {
+    "status": 403,
+    "reason": "append_only"
+   }
+  },
+  {
+   "name": "over max_bytes on notes",
+   "method": "PUT",
+   "path": "/v0/files/notes/big.txt",
+   "body": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "expect": {
+    "status": 403,
+    "reason": "max_bytes"
+   }
+  },
+  {
+   "name": "a method the door does not accept",
+   "method": "POST",
+   "path": "/v0/files/src/main.py",
+   "body": "x",
+   "expect": {
+    "status": 404,
+    "reason": "not in what this door accepts"
+   }
+  },
+  {
+   "name": "delete a file",
+   "method": "DELETE",
+   "path": "/v0/files/src/main.py",
+   "expect": {
+    "status": 204
+   }
+  },
+  {
+   "name": "deleting it again: no such file",
+   "method": "DELETE",
+   "path": "/v0/files/src/main.py",
+   "expect": {
+    "status": 404
+   }
+  },
+  {
+   "name": "mkdir",
+   "method": "POST",
+   "path": "/v0/mkdir",
+   "body": "{\"path\": \"out\"}",
+   "expect": {
+    "status": 201
+   }
+  },
+  {
+   "name": "the policy and its hash",
+   "method": "GET",
+   "path": "/v0/policy",
+   "expect": {
+    "status": 200
+   }
+  },
+  {
+   "name": "the log of this run",
+   "method": "GET",
+   "path": "/v0/log",
+   "expect": {
+    "status": 200
+   }
+  }
  ],
  "door_policy_for_these_vectors": {
-  "pbp": 1, "id": "fs-conformance", "layer": "component",
-  "rows": [{"resource": "/ledger.txt", "op": "*", "where": {"append_only": true}},
-           {"resource": "/notes", "op": "*", "where": {"max_bytes": 100}}]
+  "pbp": 1,
+  "id": "fs-conformance",
+  "layer": "component",
+  "rows": [
+   {
+    "resource": "/ledger.txt",
+    "op": "*",
+    "where": {
+     "append_only": true
+    }
+   },
+   {
+    "resource": "/notes",
+    "op": "*",
+    "where": {
+     "max_bytes": 100
+    }
+   }
+  ]
  }
 }
