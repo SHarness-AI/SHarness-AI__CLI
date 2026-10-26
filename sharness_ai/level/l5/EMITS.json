@@ -1,0 +1,5 @@
+{
+ "schema": "sharness-ai.level/v0",
+ "level": 4,
+ "document": "a level-4 document (l4/ACCEPTS.json): the profile named, id = agent, blanks from the sentence"
+}

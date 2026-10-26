@@ -90,11 +90,14 @@ class Draw:
         return out
 
     # ---- boxes ------------------------------------------------------------------------------
-    def box(self, title: str, lines: list, width: int = None) -> list:
+    def box(self, title: str, lines: list, width: int = None, indent: int = 2) -> list:
         g = self.t.glyph
+        cap = self.t.width - indent - 4
+        lines = [self.t.shorten(x, cap) for x in lines]
         inner = max([len(x) for x in lines] + [len(title) + 3])
         if width:
             inner = max(inner, width - 4)
+        inner = min(inner, cap)
         top = f"{g('tl')}{g('h')} {title} " + g("h") * (inner - len(title) - 1) + g("tr")
         body = [f"{g('v')} {x:<{inner}} {g('v')}" for x in lines]
         bottom = g("bl") + g("h") * (inner + 2) + g("br")

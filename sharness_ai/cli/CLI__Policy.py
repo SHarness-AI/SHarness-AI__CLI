@@ -54,6 +54,21 @@ class CLI__Policy:
         lines = d.kv("policy", f"{policy.get('id', '?')}   {path}", style="bold")
         return lines + d.policy(policy, None if problems else policy_hash(policy), problems)
 
+    def _lower(self, path: str, doc: dict):
+        """A levelled document (level 3, 4 or 5) compiled to its v0; the chain's hashes drawn.
+        Returns (v0, lines) or (doc, []) for a plain v0 policy; raises PolicyError."""
+        from sharness_ai.level import Chain, level_of
+        lv = level_of(doc) if "level" in doc else 2
+        if lv == 2:
+            return doc, []
+        chain = Chain.from_document(doc)
+        d = self.main.draw
+        lines = d.kv("level", f"{lv}: {chain.top.hash}   compiled to the v0 policy below "
+                              f"({' → '.join(d.hash_short(s.hash) for s in chain.steps if s.level >= 2)})", style="accent")
+        for i, u in enumerate([u for s in chain.steps for u in s.unheld]):
+            lines += d.kv("not held" if i == 0 else "", u, style="warn" if i == 0 else None)
+        return chain.v0, lines
+
     # ---- hash, check, show --------------------------------------------------------------------
     def cmd_hash(self, args) -> int:
         policy = self._load(args.file)
@@ -66,13 +81,17 @@ class CLI__Policy:
         policy = self._load(args.file)
         if policy is None:
             return EXIT_ERROR
+        try:
+            policy, level_lines = self._lower(args.file, policy)
+        except PolicyError as e:
+            return self.main.fail(str(e), hint="a levelled document compiles to a v0 policy; the message names the row", code=EXIT_PROBLEMS)
         problems = check(policy)
         t, d = self.main.term, self.main.draw
         if self.main.json:
             print(json.dumps({"file": args.file, "problems": problems, "advice": advice(policy) if not problems else [],
                               "hash": policy_hash(policy) if not problems else None}, indent=1))
             return EXIT_PROBLEMS if problems else 0
-        lines = self._show(args.file, policy, problems)
+        lines = level_lines + self._show(args.file, policy, problems)
         if problems:
             lines += d.kv("result", f"{len(problems)} problem(s): not a well-formed v0 policy; run would refuse it", style="no")
             lines += d.kv("next", "fix the rows marked above, then sharness-ai policy check again", style="head")
@@ -89,10 +108,14 @@ class CLI__Policy:
         policy = self._load(args.file)
         if policy is None:
             return EXIT_ERROR
+        try:
+            policy, level_lines = self._lower(args.file, policy)
+        except PolicyError as e:
+            return self.main.fail(str(e), code=EXIT_ERROR)
         if self.main.json:
             print(json.dumps({"file": args.file, "policy": policy, "hash": policy_hash(policy)}, indent=1))
             return 0
-        lines = self._show(args.file, policy, check(policy)) + self.main.draw.caveat()
+        lines = level_lines + self._show(args.file, policy, check(policy)) + self.main.draw.caveat()
         self.main.term.write(*lines)
         return 0
 

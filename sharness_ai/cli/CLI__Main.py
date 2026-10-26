@@ -5,6 +5,7 @@ its `cmd_*` method with set_defaults(func=...), so there is no `if` ladder here.
     sharness-ai                         the guide (a terminal), or the usage text (a pipe)
     probe | hello | run | policy …      the experiments, as before, drawn
     doctor                              can a policy hold here? seven checks with their fixes
+    contain | profile | explain         the levels: a sentence (5), a role (4), any document drawn down (all)
     help [--format json]                the command surface, from the parser itself
     components [NAME] · bash net kms fs llm launcher    the map; verbs that say "not built" (exit 69)
 """
@@ -16,6 +17,7 @@ from sharness_ai.cli.CLI__Components import ORDER, CLI__Components
 from sharness_ai.cli.CLI__Doctor import CLI__Doctor
 from sharness_ai.cli.CLI__Guide import CLI__Guide
 from sharness_ai.cli.CLI__Hello import CLI__Hello
+from sharness_ai.cli.CLI__Level import CLI__Level
 from sharness_ai.cli.CLI__Policy import CLI__Policy
 from sharness_ai.cli.CLI__Probe import CLI__Probe
 from sharness_ai.cli.CLI__Reference import CLI__Reference
@@ -44,6 +46,7 @@ class CLI__Main:
         self.guide = CLI__Guide(self)
         self.doctor = CLI__Doctor(self)
         self.reference = CLI__Reference(self)
+        self.level = CLI__Level(self)
 
     # ---- the parser -----------------------------------------------------------------------------
     def build_parser(self) -> argparse.ArgumentParser:
@@ -62,6 +65,32 @@ class CLI__Main:
         g = sub.add_parser("guide", help="where you are, the ladder, and what to do next (the no-arguments screen)")
         g.add_argument("--once", action="store_true", help="draw once, no menu")
         g.set_defaults(func=self.guide.cmd_guide)
+
+        c5 = sub.add_parser("contain", help="level 5: one sentence (a workspace, sites, secrets) compiled to the kernel and run")
+        c5.add_argument("--workspace", default=".", help="the folder the agent may write (default: here)")
+        c5.add_argument("--sites", nargs="*", help="host names it may reach (held as ports until sharness.net runs)")
+        c5.add_argument("--secrets", nargs="*", help="secret names it may use (not held yet: named as unheld)")
+        c5.add_argument("--profile", default="coding-agent", help="the level-4 profile (sharness-ai profile list)")
+        c5.add_argument("--agent", help="the agent's name (default: the command)")
+        c5.add_argument("--memory-mb", type=int, dest="memory_mb")
+        c5.add_argument("--pids", type=int)
+        c5.add_argument("--save", help="write the level-5 document here")
+        c5.add_argument("--expect-hash", help="refuse unless the sentence hashes to this")
+        c5.add_argument("--dry-run", action="store_true", help="compile and print; run nothing")
+        c5.add_argument("argv", nargs=argparse.REMAINDER, help="-- the agent's command")
+        c5.set_defaults(func=self.level.cmd_contain)
+
+        pf = sub.add_parser("profile", help="level 4: the roles a vendor ships, with the blanks a person fills")
+        pfs = pf.add_subparsers(dest="profile_cmd", metavar="action")
+        pfs.add_parser("list", help="the profiles here").set_defaults(func=self.level.cmd_profile)
+        x = pfs.add_parser("show", help="one profile: its blanks and its level-3 template")
+        x.add_argument("name")
+        x.set_defaults(func=self.level.cmd_profile)
+        pf.set_defaults(func=self.level.cmd_profile)
+
+        ex = sub.add_parser("explain", help="any document, drawn down the levels to the kernel, hash by hash")
+        ex.add_argument("file")
+        ex.set_defaults(func=self.level.cmd_explain)
 
         dr = sub.add_parser("doctor", help="can a policy hold here? seven checks in order, each with what to do about it")
         dr.add_argument("--json", action="store_true", default=S)

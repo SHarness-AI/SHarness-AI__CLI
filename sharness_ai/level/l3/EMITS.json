@@ -1,0 +1,12 @@
+{
+ "schema": "sharness-ai.level/v0",
+ "level": 2,
+ "document": "the v0 policy (sharness.ai/code/standards/policy-v0/), checked by policy.check",
+ "unheld": [
+  "host names until sharness.net",
+  "secrets until sharness.kms"
+ ],
+ "passthrough": [
+  "network.connect_tcp_ports, a level-1 row"
+ ]
+}

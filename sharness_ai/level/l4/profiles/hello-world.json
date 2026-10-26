@@ -1,0 +1,48 @@
+{
+ "pbp": 1,
+ "profile": "hello-world",
+ "title": "a hello world: read the system and the workspace, write nothing, no network",
+ "version": 1,
+ "notes": "P0 as a profile: the smallest honest policy; a first run.",
+ "blanks": {
+  "workspace": null,
+  "sites": [],
+  "secrets": [],
+  "memory_mb": 64,
+  "pids": 8
+ },
+ "template": {
+  "pbp": 1,
+  "id": "hello-world",
+  "layer": "invocation",
+  "notes": "P0 as a profile: the smallest honest policy; a first run.",
+  "files": {
+   "read": [
+    "/usr",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin",
+    "/etc",
+    "$workspace"
+   ],
+   "write": [],
+   "exec": [
+    "/usr",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin"
+   ]
+  },
+  "network": {
+   "sites": "$sites"
+  },
+  "secrets": "$secrets",
+  "process": {
+   "no_new_privs": true,
+   "max_memory_mb": "$memory_mb",
+   "max_pids": "$pids"
+  }
+ }
+}

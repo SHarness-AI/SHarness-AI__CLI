@@ -10,7 +10,7 @@ from sharness_ai.cli import CLI__Main
 from sharness_ai.cli.doctor.Check__Result import FAIL, PASS, SKIP, WARN, Check__Result
 from sharness_ai.ui import Prompt, Term
 
-TOP_LEVEL = {"guide", "doctor", "help", "probe", "policy", "run", "hello", "components",
+TOP_LEVEL = {"guide", "doctor", "help", "probe", "policy", "run", "hello", "components", "contain", "profile", "explain",
              "bash", "net", "kms", "fs", "llm", "launcher"}
 
 

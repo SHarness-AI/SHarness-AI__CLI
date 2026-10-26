@@ -1,0 +1,5 @@
+{
+ "schema": "sharness-ai.level/v0",
+ "level": 3,
+ "document": "a level-3 document (l3/ACCEPTS.json) with every blank filled, path lists sorted and deduplicated"
+}

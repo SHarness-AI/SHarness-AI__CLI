@@ -1,0 +1,54 @@
+{
+ "pbp": 1,
+ "profile": "coding-agent",
+ "title": "a coding agent's session: writes its workspace, reaches the sites it needs",
+ "version": 1,
+ "notes": "P1 as a profile: the agent writes the workspace, reads the system, reaches the forge, the package index and the model API; a tool it starts gets a narrower profile.",
+ "blanks": {
+  "workspace": null,
+  "sites": [
+   "github.com",
+   "pypi.org",
+   "api.anthropic.com"
+  ],
+  "secrets": [],
+  "memory_mb": 4096,
+  "pids": 512
+ },
+ "template": {
+  "pbp": 1,
+  "id": "coding-agent",
+  "layer": "invocation",
+  "notes": "P1 as a profile: the agent writes the workspace, reads the system, reaches the forge, the package index and the model API; a tool it starts gets a narrower profile.",
+  "files": {
+   "read": [
+    "/usr",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin",
+    "/etc",
+    "$workspace"
+   ],
+   "write": [
+    "$workspace"
+   ],
+   "exec": [
+    "/usr",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin"
+   ]
+  },
+  "network": {
+   "sites": "$sites"
+  },
+  "secrets": "$secrets",
+  "process": {
+   "no_new_privs": true,
+   "max_memory_mb": "$memory_mb",
+   "max_pids": "$pids"
+  }
+ }
+}

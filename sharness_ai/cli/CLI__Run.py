@@ -69,6 +69,7 @@ class CLI__Run:
         elif not quiet:
             verdict = "exit 0" if code == 0 else f"exit {code}"
             term.write(draw.rule(f"{argv[0] if argv else '?'} {verdict} {term.glyph('dot')} {secs:.1f} s"))
-            term.write(*draw.kv("next", f"sharness-ai policy translate {args.policy} --to docker -- CMD carries the "
-                                         f"same policy to another enforcer, with what it cannot enforce", style="dim"))
+            nxt = getattr(args, "next_hint", None) or (f"sharness-ai policy translate {args.policy} --to docker -- CMD carries the "
+                                                       f"same policy to another enforcer, with what it cannot enforce")
+            term.write(*draw.kv("next", nxt, style="dim"))
         return code

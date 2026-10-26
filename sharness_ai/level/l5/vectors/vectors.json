@@ -1,0 +1,214 @@
+{
+ "schema": "sharness-ai.level-vectors/v0",
+ "level": 5,
+ "emits": 4,
+ "accept": [
+  {
+   "name": "a-sentence",
+   "document": {
+    "pbp": 1,
+    "level": 5,
+    "contain": {
+     "agent": "claude",
+     "workspace": "/work/repo",
+     "sites": [
+      "github.com",
+      "pypi.org"
+     ],
+     "secrets": []
+    }
+   },
+   "hash": "sha256:f46683e015c05588bf216686be22e86c4cf267ee9e0d0ba33019cbb4465de613",
+   "expands_to": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "coding-agent",
+    "id": "claude",
+    "blanks": {
+     "workspace": "/work/repo",
+     "sites": [
+      "github.com",
+      "pypi.org"
+     ],
+     "secrets": []
+    }
+   },
+   "expands_to_hash": "sha256:e6165a3074d26dbfd5157686dfc3fd18ac0b939e4352e0c9b94dd41b31d81ace",
+   "sentence": "contain claude to /work/repo, github.com, pypi.org, no secrets"
+  },
+  {
+   "name": "default-profile-no-sites",
+   "document": {
+    "pbp": 1,
+    "level": 5,
+    "contain": {
+     "agent": "claude",
+     "workspace": "/work/repo"
+    }
+   },
+   "hash": "sha256:564c9a183cdb508bee0ecfb6c15d8050a32187b8ab92cb6fab759e07bb37d8f5",
+   "expands_to": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "coding-agent",
+    "id": "claude",
+    "blanks": {
+     "workspace": "/work/repo"
+    }
+   },
+   "expands_to_hash": "sha256:2f42a1744ad342e409b1b41cb7bc3a468d21bc7972b3f836ae45156a57a47a67",
+   "sentence": "contain claude to /work/repo, no sites, no secrets"
+  },
+  {
+   "name": "another-profile",
+   "document": {
+    "pbp": 1,
+    "level": 5,
+    "contain": {
+     "agent": "claude",
+     "workspace": "/work/repo",
+     "profile": "tool-server"
+    }
+   },
+   "hash": "sha256:31ea78952932831039eb960954ac21cbb614e48b878d0333b1aee9eadf284601",
+   "expands_to": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "tool-server",
+    "id": "claude",
+    "blanks": {
+     "workspace": "/work/repo"
+    }
+   },
+   "expands_to_hash": "sha256:70e59980aada147c944b3a9443a6ad274cd48f81b04237766b4b8602a2ceb064",
+   "sentence": "contain claude to /work/repo, no sites, no secrets"
+  },
+  {
+   "name": "a-budget",
+   "document": {
+    "pbp": 1,
+    "level": 5,
+    "contain": {
+     "agent": "claude",
+     "workspace": "/work/repo",
+     "budget": {
+      "memory_mb": 512,
+      "pids": 32
+     }
+    }
+   },
+   "hash": "sha256:39ac4df51cfbced2baa52643dab51b805901618b7ae929d246843d160bc42dc3",
+   "expands_to": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "coding-agent",
+    "id": "claude",
+    "blanks": {
+     "workspace": "/work/repo",
+     "memory_mb": 512,
+     "pids": 32
+    }
+   },
+   "expands_to_hash": "sha256:ba2a62b42ac4b7793f5b67bbec6e820ffddbe0c93a429db5c5d0f912b17b1116",
+   "sentence": "contain claude to /work/repo, no sites, no secrets"
+  },
+  {
+   "name": "sites-sorted-and-deduped",
+   "document": {
+    "pbp": 1,
+    "level": 5,
+    "contain": {
+     "agent": "claude",
+     "workspace": "/work/repo",
+     "sites": [
+      "pypi.org",
+      "github.com",
+      "pypi.org"
+     ]
+    }
+   },
+   "hash": "sha256:9ff1692d329cdb2b668bc1afed285fc6e4f7617b3a085ef93f0c82549863108d",
+   "expands_to": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "coding-agent",
+    "id": "claude",
+    "blanks": {
+     "workspace": "/work/repo",
+     "sites": [
+      "github.com",
+      "pypi.org"
+     ]
+    }
+   },
+   "expands_to_hash": "sha256:43c1a3e33384016ae4fea4d03926742c04dadeaf1c44584d49ae6f79d08954f6",
+   "sentence": "contain claude to /work/repo, pypi.org, github.com, pypi.org, no secrets"
+  }
+ ],
+ "refuse": [
+  {
+   "name": "no-agent",
+   "document": {
+    "pbp": 1,
+    "level": 5,
+    "contain": {
+     "workspace": "/w"
+    }
+   },
+   "reason": "level 5: contain.agent must name the agent (a word)"
+  },
+  {
+   "name": "relative-workspace",
+   "document": {
+    "pbp": 1,
+    "level": 5,
+    "contain": {
+     "agent": "a",
+     "workspace": "w"
+    }
+   },
+   "reason": "level 5: contain.workspace must be an absolute, normalised path"
+  },
+  {
+   "name": "unknown-key",
+   "document": {
+    "pbp": 1,
+    "level": 5,
+    "contain": {
+     "agent": "claude",
+     "workspace": "/work/repo",
+     "colour": "blue"
+    }
+   },
+   "reason": "level 5: contain.colour: unknown key at level 5"
+  },
+  {
+   "name": "unknown-profile",
+   "document": {
+    "pbp": 1,
+    "level": 5,
+    "contain": {
+     "agent": "claude",
+     "workspace": "/work/repo",
+     "profile": "nope"
+    }
+   },
+   "reason": "level 5: contain.profile must be one of coding-agent, hello-world, newsroom-agent, tool-server, vault-cli, web-fetch"
+  },
+  {
+   "name": "budget-with-extra",
+   "document": {
+    "pbp": 1,
+    "level": 5,
+    "contain": {
+     "agent": "claude",
+     "workspace": "/work/repo",
+     "budget": {
+      "gpus": 1
+     }
+    }
+   },
+   "reason": "level 5: contain.budget may hold memory_mb and pids only"
+  }
+ ]
+}

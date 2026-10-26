@@ -1,0 +1,29 @@
+{
+ "schema": "sharness-ai.level/v0",
+ "level": 3,
+ "document": {
+  "pbp": 1,
+  "level": 3,
+  "id": "string",
+  "files": {
+   "read": [
+    "absolute normalised path"
+   ],
+   "write": [
+    "..."
+   ],
+   "exec": [
+    "..."
+   ]
+  },
+  "network": "none | {sites: [host, http://host, host:port], connect_tcp_ports?: [int]}",
+  "secrets": "[string] (optional; unheld)",
+  "process": {
+   "no_new_privs": true,
+   "max_memory_mb": "int?",
+   "max_pids": "int?"
+  },
+  "notes": "string?",
+  "layer": "string?"
+ }
+}
