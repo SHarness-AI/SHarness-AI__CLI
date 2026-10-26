@@ -1,0 +1,8 @@
+{
+ "schema": "sharness-ai.door-contract/v0",
+ "door": "sharness.fs",
+ "targets": {
+  "disk": "the local disk: open, write, rename, unlink under the root; nothing leaves the machine",
+  "disk.twin": "nothing: a dictionary in the door's own memory"
+ }
+}

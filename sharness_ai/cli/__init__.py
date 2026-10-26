@@ -11,7 +11,9 @@ experiments from the design, drawn as screens that say where you are and what to
     policy translate FILE --to T    E10  the same policy as bwrap, docker, claude-code, kubernetes; and the gap
     run --policy FILE -- CMD   E03  one command under a policy: the plan, then the command
     hello                      E04  the acceptance test, six probes under one policy, as a scoreboard
-    components [NAME]               the operating system a process sees: designed, not built
+    components [NAME]               the operating system a process sees: fs runs; the rest designed
+    contain | profile | explain     the levels: a sentence (5), a role (4), any document drawn down
+    session | fs | door             E05 and the first door: sharness.fs.disk and its twin
 """
 from sharness_ai.cli.CLI__Main import CLI__Main, build_parser, main
 

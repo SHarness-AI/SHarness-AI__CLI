@@ -15,7 +15,7 @@ COMPONENTS = {
     "kms":      ("where a secret lives", "keys never leave; callers get derived keys sealed to a one-time key",
                  ("POST /v0/unwrap", "POST /v0/seal_to", "GET /v0/identity", "GET /v0/policy")),
     "fs":       ("the only writer", "the one process with a writable root; every write checked against its rules",
-                 ("PUT /v0/files/<path>", "POST /v0/files/<path>/rename", "DELETE /v0/files/<path>", "GET /v0/policy")),
+                 ("PUT /v0/files/<path>", "POST /v0/files/<path>/append", "DELETE /v0/files/<path>", "POST /v0/mkdir", "GET /v0/hello", "GET /v0/policy")),
     "llm":      ("the only model client", "the Messages API unchanged, behind a model allowlist, a budget and a filter",
                  ("POST /v1/messages", "GET /v0/log", "GET /v0/policy")),
     "launcher": ("the bootstrap", "one user, one policy per component, every component started bound before it runs",
@@ -24,6 +24,7 @@ COMPONENTS = {
                  ("GET /v0/policy on every component",)),
 }
 ORDER = ("bash", "net", "kms", "fs", "llm", "launcher", "policy")
+RUNNABLE = {"fs": "runnable: sharness.fs.disk and sharness.fs.disk.twin (sharness-ai fs serve); a Setting for the app until the launcher"}
 
 # WYSIWYG template: every placeholder is one character wide, so the columns line up as shown.
 # { ┌  } ┐  [ └  ] ┘  < ├  > ┤  ~ ┬  = ┴  | │  - ─
@@ -76,7 +77,7 @@ class CLI__Components:
             print(json.dumps({"status": "designed, not built", "components": {
                 k: {"role": v[0], "does": v[1], "surface": list(v[2]), "page": f"{SITE}/{k}/index.html"}
                 for k, v in COMPONENTS.items()}, "selected": selected}, indent=1))
-            return EXIT_NOT_BUILT if selected else 0
+            return EXIT_NOT_BUILT if selected and selected not in RUNNABLE else 0
         t, d = self.main.term, self.main.draw
         lines = d.head("components", "the operating system a process sees")
         lines.append("")
@@ -88,14 +89,18 @@ class CLI__Components:
             for i, s in enumerate(surface):
                 lines += d.kv("proposed" if i == 0 else "", s)
             lines += d.kv("page", f"{SITE}/{selected}/index.html")
-            lines += d.kv("status", "designed, not built. This verb exists so that the shape is visible; it exits 69 "
-                                    "(unavailable) until the component is runnable", style="warn")
+            if selected in RUNNABLE:
+                lines += d.kv("status", RUNNABLE[selected], style="ok")
+                lines += d.kv("next", "sharness-ai session new; sharness-ai fs serve --target disk.twin; sharness-ai door conformance sharness.fs.disk.twin", style="head")
+            else:
+                lines += d.kv("status", "designed, not built. This verb exists so that the shape is visible; it exits 69 "
+                                        "(unavailable) until the component is runnable", style="warn")
         else:
             for k in ORDER:
-                lines += d.kv(f"sharness.{k}", COMPONENTS[k][0])
-            lines += d.kv("status", f"all seven: designed, not built {t.glyph('dot')} {SITE}/", style="warn")
+                lines += d.kv(f"sharness.{k}", COMPONENTS[k][0] + (f"  {t.mark('ok')} runnable (disk, disk.twin)" if k in RUNNABLE else ""))
+            lines += d.kv("status", f"fs runs (a Setting until the launcher); the other six: designed, not built {t.glyph('dot')} {SITE}/", style="warn")
             lines += d.kv("today", "the experiments are what runs: probe, policy, run, hello, translate", style="dim")
             lines += d.kv("next", "sharness-ai components net   one component in detail; sharness-ai hello   what runs today",
                           style="head")
         t.write(*lines)
-        return EXIT_NOT_BUILT if selected else 0
+        return EXIT_NOT_BUILT if selected and selected not in RUNNABLE else 0

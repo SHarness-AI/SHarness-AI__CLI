@@ -116,6 +116,9 @@ experiments and storyboards is [sharness.ai/code/experiments](https://sharness.a
 | `sharness-ai contain --workspace . --sites github.com -- CMD` | level 5 | one sentence (a workspace, sites, secrets, a profile) compiled deterministically down to the v0 policy the kernel holds and run under it; prints what it became at each level, one hash, what is held, what is not held yet (host names, until `sharness.net`), what is never covered. `--save FILE` keeps the sentence; `--expect-hash` refuses any other |
 | `sharness-ai profile list\|show NAME` | level 4 | the roles a vendor ships with blanks a person fills: the example policies P0 to P5 as templates (`coding-agent`, `tool-server`, `hello-world`, …) |
 | `sharness-ai explain FILE` | all | any document (level 5, 4, 3 or a v0 policy) drawn down the levels to the kernel, one box per level, a hash beside each, the unheld and passed-through rows named. `policy show\|check` read a levelled document too |
+| `sharness-ai session new --roles app fs` | E05 | a session CA and one identity per role, issued by `openssl` (P-256, TLS 1.3, SAN URI `spiffe://<session>/<role>`), the CA key destroyed; what every door and every caller loads. No Python dependency |
+| `sharness-ai fs serve --target disk\|disk.twin --root DIR`, `fs hello\|put\|append\|get\|rm\|ls\|log` | the first door | `sharness.fs`, the only writer, as a loopback service under mutual TLS: the caller's role read from its certificate, the edge checked both ways, every request matched against `ACCEPTS.json`, then the rows (`within_root` and `refuse_secrets` always; `max_bytes`, `append_only` per path), one audit line per request. `disk` is the local disk; `disk.twin` the same face over memory |
+| `sharness-ai door conformance sharness.fs.disk.twin\|sharness.fs.disk` | | the door's 18 vectors against a fresh instance, the twin first, then the disk; exit 0 only when every vector held |
 | `sharness-ai doctor` | | can a policy hold here? Seven checks in order (kernel, Landlock files, Landlock TCP, network namespace, cgroups, process count, a real write refused under a deny-write policy), each pass, warn, fail or skip with what to do about it; a fatal failure skips the rest; `--json` is the report. Exit 0 healthy or degraded, 1 failed |
 | `sharness-ai help [--format json]` | | every command, read from the parser itself, so no page can describe a flag that does not exist; the JSON is what the site's CLI page is written from |
 
@@ -176,6 +179,23 @@ agent too needs the launcher above the agent: [who enforces decides](https://sha
 **For a Claude Code session:** the skill in [.claude/skills/sharness-hello](.claude/skills/sharness-hello/SKILL.md)
 runs E01 and E04 inside the session under the design's safety rules and reports the result in the
 site's status words.
+
+## The first door, and the two halves together
+
+`sharness.fs` runs: `sharness-ai session new`, then `sharness-ai fs serve --target disk --root ./work`, then
+an app under a policy whose `files.write` does not include `./work` and whose ports include the door's.
+Measured 26 Oct 2026 on this kernel (Linux 6.18, Landlock ABI 7): the app's own `open(…, 'w')` in the root
+is refused by the kernel (`EACCES`); its `PUT` through the door is written (`201`); its `PUT` of a private
+key is refused by the door (`403 refuse_secrets`); a path that climbs out is refused (`403 within_root`); a
+write to an `append_only` path is refused and an append lands. That is the design's two halves in one
+test (`tests/unit/fs/test_fs.py`): the kernel closes the side door, the door holds the rows. It is a
+**Setting** for the app until the launcher (not built) gives the door its own uid; `GET /v0/hello` says so.
+
+The code shape is the brief's: every door, target, twin and level is a folder with `README.md`,
+`REALITY.md`, `ACCEPTS.json`, `EMITS.json` and `vectors/` (`sharness_ai/door/`, `sharness_ai/fs/`,
+`sharness_ai/fs/disk/`, `sharness_ai/fs/disk/twin/`, `sharness_ai/level/l{3,4,5}/`), replaceable by an
+implementation in another language that speaks the same accepts and emits. Standard library only;
+`openssl` is a program on the machine, not a package.
 
 ## Security
 

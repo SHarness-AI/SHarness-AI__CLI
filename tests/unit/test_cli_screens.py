@@ -142,6 +142,7 @@ class Test_Components:
         out = capsys.readouterr().out
         assert "+- NET" in out and "POST /v0/fetch" in out and "exits 69" in out
         assert cli().run(["components", "kms"]) == EXIT_NOT_BUILT
+        assert cli().run(["components", "fs"]) == 0 and "runnable" in capsys.readouterr().out
 
     def test_json_lists_them(self, state, capsys):
         assert cli().run(["--json", "components"]) == 0
