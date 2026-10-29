@@ -12,7 +12,7 @@ import re
 import shutil
 import sys
 
-CAP_ALL_HEX_MIN_BITS = 38          # a bounding set with this many bits on is "everything", near enough
+CAP_ALL_HEX_MIN_BITS = 38          # an effective set with this many bits on is "everything", near enough
 TOOLS = ("unshare", "setpriv", "bwrap", "strace", "iptables", "nft", "useradd", "fusermount3", "criu")
 CONFIG_KEYS = ("CONFIG_SECURITY_LANDLOCK", "CONFIG_SECCOMP", "CONFIG_SECRETMEM", "CONFIG_USER_NS",
                "CONFIG_CGROUP_FREEZER", "CONFIG_PKCS8_PRIVATE_KEY_PARSER", "CONFIG_FUSE_FS")
@@ -77,7 +77,7 @@ def probe() -> dict:
     cap_eff = st.get("CapEff", "")
     cap_bnd = st.get("CapBnd", "")
     try:
-        caps_all = bin(int(cap_bnd, 16)).count("1") >= CAP_ALL_HEX_MIN_BITS
+        caps_all = bin(int(cap_eff, 16)).count("1") >= CAP_ALL_HEX_MIN_BITS   # what is in effect, not the bounding set
     except ValueError:
         caps_all = None
     landlock_abi = 0
@@ -109,6 +109,15 @@ def probe() -> dict:
     }
 
 
+def caps_word(p: dict) -> str:
+    """'all', 'some', 'none' or 'unknown': the effective set, which is what a process here can use now."""
+    if p["caps_all"] is None:
+        return "unknown"
+    if p["caps_all"]:
+        return "all"
+    return "none" if p["cap_eff"] and not int(p["cap_eff"], 16) else "some"
+
+
 def render(p: dict) -> str:
     def yn(v):
         return "yes" if v else "no"
@@ -116,7 +125,7 @@ def render(p: dict) -> str:
     def known(v, absent="unknown"):
         return absent if v is None else v
     who = f"uid {p['uid']}" + (" (root)" if p["uid"] == 0 else "")
-    caps = ("all" if p["caps_all"] else "some" if p["caps_all"] is not None else "unknown")
+    caps = caps_word(p)
     if p["cap_eff"]:
         caps += f" (CapEff {p['cap_eff']}, CapBnd {p['cap_bnd']})"
     tools = "  ".join(f"{t} {'✔' if path else '✗'}" for t, path in p["tools"].items())

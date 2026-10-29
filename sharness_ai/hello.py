@@ -106,7 +106,9 @@ def _classify(name, rc, out, err):
     if rc == 0 and out.endswith("ok"):
         return "allowed"
     text = (out + "\n" + err).strip()
-    last = text.splitlines()[-1] if text else f"exit {rc}"
+    lines = text.splitlines()
+    cause = [ln.strip() for ln in lines if any(e in ln for e in UNAMBIGUOUS + AMBIGUOUS)]
+    last = cause[-1] if cause else (lines[-1].strip() if lines else f"exit {rc}")   # the error, not the runner's footer
     if rc in (-9, 137) or "Killed" in text:
         return "refused (killed by the kernel: the cgroup memory cap)"
     if any(e in text for e in UNAMBIGUOUS):

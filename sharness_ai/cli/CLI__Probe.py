@@ -2,7 +2,7 @@
 import json
 import os
 
-from sharness_ai.probe import probe
+from sharness_ai.probe import caps_word, probe
 
 
 class CLI__Probe:
@@ -63,7 +63,7 @@ class CLI__Probe:
         def known(v, absent="unknown"):
             return absent if v is None else v
         who = f"uid {p['uid']}" + (" (root)" if p["uid"] == 0 else "")
-        caps = "all" if p["caps_all"] else "some" if p["caps_all"] is not None else "unknown"
+        caps = caps_word(p)
         if p["cap_eff"]:
             caps += f" (CapEff {p['cap_eff']}, CapBnd {p['cap_bnd']})"
         tools = "  ".join(f"{k} {t.mark('ok') if v else t.mark('no')}" for k, v in p["tools"].items())
