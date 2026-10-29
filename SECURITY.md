@@ -10,6 +10,21 @@ findings of every review and what was done about them, and the hardening guidanc
 - Hardening: how to run it, and how the repositories are locked down: https://sharness.ai/security/hardening/index.md
 - Supply chain: what runs in CI, what is pinned, how a release is built and attested: https://sharness.ai/security/supply-chain/index.md
 
+## Release sign-off
+
+**v0.2.0 (R7, the first release from `main`): go from security@sharness, 29 Oct 2026.** Security
+review 2 (https://sharness.ai/security/reviews/index.md) covered the door kit, `sharness.fs`,
+`sharness.net.proxy`, `sharness-ai shell` and the release workflow. Both High findings (SR-28, SR-30)
+and two Medium (SR-29, SR-31) are fixed with tests in `tests/unit/test_security.py`; the rest are on
+the register as accepted or open, with the reason. The go is for `dev` at `7213484`, read commit by
+commit since review 2: 253 tests pass as root with Landlock ABI 7 (the review's tests run, not
+skipped); `tests`, `security` and `codeql` green; `sharness-ai shell` end to end holds the allowlist.
+A later commit that changes code under `sharness_ai/` or `.github/` needs another read before it
+ships in this release; a commit that changes only text does not.
+
+Open, not blocking: the release run itself (SR-05, confirmed when it is green), the repository
+settings (SR-24, board R15), `/dev/null` inside the shell (board T30, a usability gap).
+
 ## Reporting a vulnerability
 
 Use GitHub's private vulnerability reporting on this repository:
