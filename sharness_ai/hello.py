@@ -106,18 +106,25 @@ def _classify(name, rc, out, err):
     if rc == 0 and out.endswith("ok"):
         return "allowed"
     text = (out + "\n" + err).strip()
-    lines = text.splitlines()
-    cause = [ln.strip() for ln in lines if any(e in ln for e in UNAMBIGUOUS + AMBIGUOUS)]
-    last = cause[-1] if cause else (lines[-1].strip() if lines else f"exit {rc}")   # the error, not the runner's footer
+    last = text.splitlines()[-1].strip() if text else f"exit {rc}"
     if rc in (-9, 137) or "Killed" in text:
         return "refused (killed by the kernel: the cgroup memory cap)"
     if any(e in text for e in UNAMBIGUOUS):
-        return f"refused ({last[:90]})"
+        return f"refused ({_reason(text, UNAMBIGUOUS, last)[:90]})"
     if any(e in text for e in AMBIGUOUS):
+        why = _reason(text, AMBIGUOUS, last)
         if _control(PROBES[name]):
-            return f"refused ({last[:90]}; the control without a policy succeeded)"
-        return f"inconclusive ({last[:70]}; the control without a policy failed the same way)"
+            return f"refused ({why[:90]}; the control without a policy succeeded)"
+        return f"inconclusive ({why[:70]}; the control without a policy failed the same way)"
     return f"failed otherwise ({last[:90]})"
+
+
+def _reason(text, terms, fallback):
+    """The line that carries the error, not whatever the runner printed last (its footer)."""
+    for line in reversed(text.splitlines()):
+        if any(t in line for t in terms):
+            return line.strip()
+    return fallback
 
 
 def measure() -> dict:

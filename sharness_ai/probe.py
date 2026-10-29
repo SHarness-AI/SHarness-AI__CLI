@@ -12,7 +12,7 @@ import re
 import shutil
 import sys
 
-CAP_ALL_HEX_MIN_BITS = 38          # an effective set with this many bits on is "everything", near enough
+CAP_ALL_HEX_MIN_BITS = 38          # a bounding set with this many bits on is "everything", near enough
 TOOLS = ("unshare", "setpriv", "bwrap", "strace", "iptables", "nft", "useradd", "fusermount3", "criu")
 CONFIG_KEYS = ("CONFIG_SECURITY_LANDLOCK", "CONFIG_SECCOMP", "CONFIG_SECRETMEM", "CONFIG_USER_NS",
                "CONFIG_CGROUP_FREEZER", "CONFIG_PKCS8_PRIVATE_KEY_PARSER", "CONFIG_FUSE_FS")
@@ -77,7 +77,7 @@ def probe() -> dict:
     cap_eff = st.get("CapEff", "")
     cap_bnd = st.get("CapBnd", "")
     try:
-        caps_all = bin(int(cap_eff, 16)).count("1") >= CAP_ALL_HEX_MIN_BITS   # what is in effect, not the bounding set
+        caps_all = bin(int(cap_bnd, 16)).count("1") >= CAP_ALL_HEX_MIN_BITS
     except ValueError:
         caps_all = None
     landlock_abi = 0
@@ -109,13 +109,18 @@ def probe() -> dict:
     }
 
 
-def caps_word(p: dict) -> str:
-    """'all', 'some', 'none' or 'unknown': the effective set, which is what a process here can use now."""
-    if p["caps_all"] is None:
+def caps_label(p: dict) -> str:
+    """What is in effect, then the most it could gain: CapEff and CapBnd are different questions."""
+    eff, bnd = p.get("cap_eff"), p.get("cap_bnd")
+    if not eff:
         return "unknown"
-    if p["caps_all"]:
-        return "all"
-    return "none" if p["cap_eff"] and not int(p["cap_eff"], 16) else "some"
+    try:
+        n = bin(int(eff, 16)).count("1")
+    except ValueError:
+        return "unknown"
+    now = "all" if n >= CAP_ALL_HEX_MIN_BITS else "none" if n == 0 else "some"
+    gain = "full" if p.get("caps_all") else "limited" if p.get("caps_all") is not None else "unknown"
+    return f"{now} in effect (CapEff {eff}); bounding set {gain} (CapBnd {bnd})"
 
 
 def render(p: dict) -> str:
@@ -125,9 +130,7 @@ def render(p: dict) -> str:
     def known(v, absent="unknown"):
         return absent if v is None else v
     who = f"uid {p['uid']}" + (" (root)" if p["uid"] == 0 else "")
-    caps = caps_word(p)
-    if p["cap_eff"]:
-        caps += f" (CapEff {p['cap_eff']}, CapBnd {p['cap_bnd']})"
+    caps = caps_label(p)
     tools = "  ".join(f"{t} {'✔' if path else '✗'}" for t, path in p["tools"].items())
     cfg = p.get("kernel_config")
     cfg_s = ("  ".join(f"{k.replace('CONFIG_', '')}={v}" for k, v in cfg.items())
