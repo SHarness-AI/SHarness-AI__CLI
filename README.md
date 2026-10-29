@@ -11,7 +11,7 @@ what it may read, write, run and connect to, named by one hash the person suppli
 by the Linux kernel. A tricked agent cannot widen it, because the kernel was told before the
 process started. Standard library only, Python 3.11+.
 
-![The one idea: a policy is written, hashed to one name, and handed to the kernel before the agent's tool starts; reads and workspace writes are allowed, a connect to port 80 and a 200 MiB allocation are refused](docs/anim/one-idea.svg)
+![The one idea: a policy is written, hashed to one name, and handed to the kernel before the agent's tool starts; reads and workspace writes are allowed, a connect to port 80 and a 200 MiB allocation are refused](https://raw.githubusercontent.com/SHarness-AI/SHarness-AI__CLI/main/docs/anim/one-idea.svg)
 
 ## Try it in 60 seconds
 
@@ -36,7 +36,7 @@ sharness-ai itself) and the row of the policy to change. On a pipe, under `NO_CO
 console or with `--plain`, the same screens are drawn in ASCII; `--json` is on every command that has
 data. The design, written before the code: [The CLI is the front door](https://sharness.ai/articles/the-cli-is-the-front-door.html).
 
-![sharness-ai hello replayed: read allowed; two writes, a connect, a 400 MiB allocation and a wrong hash refused; result 6 of 6 held; then the caveat](docs/anim/hello-replay.svg)
+![sharness-ai hello replayed: read allowed; two writes, a connect, a 400 MiB allocation and a wrong hash refused; result 6 of 6 held; then the caveat](https://raw.githubusercontent.com/SHarness-AI/SHarness-AI__CLI/main/docs/anim/hello-replay.svg)
 
 **Then tell us what it said.** `sharness-ai hello --json` and
 [a two-field report](https://github.com/SHarness-AI/SHarness-AI__CLI/issues/new?template=hello-report.yml):
@@ -73,7 +73,7 @@ the agent too needs the launcher above the agent, which is the design, not yet c
 
 ## A real Linux kernel, in a browser tab
 
-![A browser tab opens sharness.ai, v86 starts, Linux 6.18 boots and prints landlock: Up and running, hello holds 6 of 6 at 28.5 seconds, and the example policies refuse a write, a port and an allocation](docs/anim/kernel-in-a-tab.svg)
+![A browser tab opens sharness.ai, v86 starts, Linux 6.18 boots and prints landlock: Up and running, hello holds 6 of 6 at 28.5 seconds, and the example policies refuse a write, a port and an allocation](https://raw.githubusercontent.com/SHarness-AI/SHarness-AI__CLI/main/docs/anim/kernel-in-a-tab.svg)
 
 `experiments/browser/` builds one Alpine x86 guest (Alpine's `linux-virt` kernel, Landlock on, Python
 3.12, this package, the example policies) with the standard library, and runs it three ways:
@@ -83,7 +83,7 @@ in all three on 25 Oct 2026. The story, with screenshots: [Linux in a tab](https
 
 ## Example policies
 
-Seven in [experiments/policies/](experiments/policies/README.md): two minimal examples and five
+Seven in [experiments/policies/](https://github.com/SHarness-AI/SHarness-AI__CLI/blob/main/experiments/policies/README.md): two minimal examples and five
 profiles with `/work` as the workspace, from P0 (a hello world, 64 MiB, 8 processes) through P1 (a
 coding agent's session), P2 (a tool or MCP server on stdio, read-only, no network), P3 (the sgit.ai
 newsroom agent) to P4 (the sgit CLI). Each hashes to the same value in Python, in the browser and
@@ -100,7 +100,7 @@ SHarness is unrelated to Sharness, the shell testing library.
 
 ## The commands: the first experiments
 
-Numbered and described in [experiments/README.md](experiments/README.md); the map of mockups,
+Numbered and described in [experiments/README.md](https://github.com/SHarness-AI/SHarness-AI__CLI/blob/main/experiments/README.md); the map of mockups,
 experiments and storyboards is [sharness.ai/code/experiments](https://sharness.ai/code/experiments/index.html).
 
 | Command | Experiment | What it shows |
@@ -181,7 +181,7 @@ Not here yet: seccomp, per-component uids, mutual TLS, the launcher, any compone
 for them and only a Setting for itself (it could have skipped it). Making it a Boundary for the
 agent too needs the launcher above the agent: [who enforces decides](https://sharness.ai/design/policies/index.html#2-who-enforces-decides-the-barrier-kind).
 
-**For a Claude Code session:** the skill in [.claude/skills/sharness-hello](.claude/skills/sharness-hello/SKILL.md)
+**For a Claude Code session:** the skill in [.claude/skills/sharness-hello](https://github.com/SHarness-AI/SHarness-AI__CLI/blob/main/.claude/skills/sharness-hello/SKILL.md)
 runs E01 and E04 inside the session under the design's safety rules and reports the result in the
 site's status words.
 
@@ -230,7 +230,7 @@ clients that honour `HTTPS_PROXY` resolve nothing.
 This is a security product, so the project keeps its own register of what it knows about itself:
 the threat model, every known risk and whether it is fixed or accepted, every review's findings
 with dates, and the hardening guidance are on [sharness.ai/security](https://sharness.ai/security/index.html).
-[SECURITY.md](SECURITY.md) says how to report a vulnerability (GitHub private reporting). Each fix
+[SECURITY.md](https://github.com/SHarness-AI/SHarness-AI__CLI/blob/main/SECURITY.md) says how to report a vulnerability (GitHub private reporting). Each fix
 is pinned by a test in `tests/unit/test_security.py`; `.github/workflows/security.yml` runs ruff's
 bandit rules, bandit, zizmor, pip-audit, npm audit and an SBOM on every push; `codeql.yml` runs CodeQL.
 Every download the browser bench makes is pinned by sha256 and refused on mismatch. The release
