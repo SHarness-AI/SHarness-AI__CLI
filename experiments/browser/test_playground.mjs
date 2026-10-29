@@ -6,14 +6,15 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname, resolve, extname } from "node:path";
+import { dirname, resolve, extname, normalize } from "node:path";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(process.argv[2] || HERE + "/out");
 const WWW = OUT + "/www";
 const { chromium } = await import(process.env.PLAYWRIGHT || "playwright");
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".wasm": "application/wasm", ".json": "application/json", ".gz": "application/gzip" };
 const server = createServer(async (req, res) => {
-  const file = WWW + decodeURIComponent(req.url.split("?")[0]);
+  const file = normalize(WWW + decodeURIComponent(req.url.split("?")[0]));
+  if (!file.startsWith(WWW + "/")) { res.writeHead(404); res.end(); return; }   // nothing above out/www, as boot_browser.mjs
   try { const body = await readFile(file); res.writeHead(200, { "content-type": TYPES[extname(file)] || "application/octet-stream" }); res.end(body); }
   catch { res.writeHead(404); res.end(); }
 });

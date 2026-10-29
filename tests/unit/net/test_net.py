@@ -32,6 +32,7 @@ class Test_SNI:
         # a real ClientHello, captured from the ssl module into a socket pair
         a, b = socket.socketpair()
         ctx = ssl.create_default_context()
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         a.setblocking(False)
         wrapped = ctx.wrap_socket(a, server_hostname="github.com", do_handshake_on_connect=False)
         try:

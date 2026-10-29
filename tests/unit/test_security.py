@@ -294,8 +294,9 @@ class Test_Repository_Hygiene:
         assert "master" not in bg.V86_RAW
 
     def test_static_server_refuses_path_traversal(self):
-        js = (ROOT / "experiments/browser/boot_browser.mjs").read_text()
-        assert "startsWith(WWW" in js and "normalize(" in js
+        for name in ("boot_browser.mjs", "test_playground.mjs"):          # the second since CodeQL alert 2, 29 Oct 2026
+            js = (ROOT / "experiments/browser" / name).read_text()
+            assert "startsWith(WWW" in js and "normalize(" in js, name
 
 
 class Test_Door_Review_3:
