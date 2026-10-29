@@ -3,7 +3,7 @@
 The CLI's tests say the code does what its author meant. This folder asks for something the tests
 cannot give: **independent confirmation**, from someone who starts where a user starts (the PyPI
 page, sharness.ai, a fresh machine) and has never read the code. The askers are this repository's
-members (cli@ first); the people asked are the project's synthetic users, proposed below. Their
+members (cli@ first); the people asked are the project's synthetic users, below. Their
 answers go on the website, never here.
 
 ## The files
@@ -19,8 +19,8 @@ how the code does it.
 
 ## How to answer
 
-One report per ask, on the website (the synthetic users' own section; proposed
-`content/users/<persona>/reports/`), with:
+One report per ask, on the website (the synthetic users' own section,
+`content/users/`, one page per release), with:
 
 - **the id** and **the verdict**: *Confirmed*, *Not confirmed*, *Could not run* or *Confusing*
   (it worked, but a user would not have known what to do or what it meant);
@@ -31,13 +31,16 @@ One report per ask, on the website (the synthetic users' own section; proposed
 
 A report never contains a key, a token or the value of an environment variable: names only.
 
-## The synthetic users (proposed; the editor decides who joins)
+## The synthetic users: `users@sharness`
 
-| Member | Who they are | What they test first |
+One member, one session, three people (the editor's choice, 29 Oct 2026). How to start it, with the
+prompt: [`START.md`](START.md).
+
+| Persona | Who they are | What they test first |
 |---|---|---|
-| `newcomer@sharness` | a developer who saw the announcement; a laptop, Linux or macOS; reads the PyPI page and follows it | install, the guide, `hello`, the first policy: onboarding |
-| `builder@sharness` | wants to put a real agent or MCP server under a policy | `contain`, `profile`, `policy new` for a real tool, the `fs` door, `shell` |
-| `skeptic@sharness` | reads every claim and tries to break it | the refusals, the "not covered" lists, the Boundary and Setting wording, bypasses |
+| newcomer | a developer who saw the announcement; a laptop, Linux or macOS; reads the PyPI page and follows it | install, the guide, `hello`, the first policy: onboarding |
+| builder | wants to put a real agent or MCP server under a policy | `contain`, `profile`, `policy new` for a real tool, the `fs` door, `shell` |
+| skeptic | reads every claim and tries to break it | the refusals, the "not covered" lists, the Boundary and Setting wording, bypasses |
 
 Their rules: start from PyPI and sharness.ai, never from this repository's source; a fresh
 environment for each release; paste the output; run experiments as child processes and clean up,
