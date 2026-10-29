@@ -3,6 +3,7 @@ A test here failing means a hole the review closed has opened again."""
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -312,3 +313,139 @@ class Test_Door_Review_3:
             assert (tmp_path / "root" / "notes.txt").read_bytes() == b"-----BEGIN PRIVATE "
         finally:
             door.stop()
+
+
+needs_root_shell = pytest.mark.skipif(landlock.abi() < 4 or os.geteuid() != 0 or not shutil.which("useradd") or not shutil.which("openssl")
+                                      or not shutil.which("python3", path="/usr/bin:/bin"),
+                                      reason="needs root, Landlock ABI 4, useradd, openssl and a system python3")
+
+
+SYSTEM_PY = shutil.which("python3", path="/usr/bin:/bin")       # inside the shell's profile, unlike a venv's
+
+
+def _shell_workspace():
+    import tempfile
+    base = Path(tempfile.mkdtemp(prefix="sharness-review-2-", dir="/tmp"))   # noqa: S108 - pytest's own tmp is 0700, which the new uid cannot enter
+    os.chmod(base, 0o777)                                                      # noqa: S103 - a workspace the shell's uid can enter and write
+    return base
+
+
+class Test_Review_2:
+    """Security review 2, 29 Oct 2026 (sharness.ai/security/reviews): the door kit, sharness.fs,
+    sharness.net.proxy and sharness-ai shell, before the first release from main."""
+
+    @needs_root_shell
+    def test_the_shell_reaches_the_proxy_and_no_other_address_on_its_port(self):
+        import socket
+        from sharness_ai.launcher import Launcher
+        work = _shell_workspace()
+        la = Launcher(str(work), ["localhost"], ui=False)
+        info = la.start()
+        port = info["proxy_port"]
+        decoy = socket.socket()
+        decoy.bind(("127.0.0.2", port))                    # the proxy's port on another address: Landlock alone allowed it (SR-28)
+        decoy.listen()
+        probe = (f"import socket\n"
+                 f"try:\n socket.create_connection(('127.0.0.2', {port}), timeout=3); open('decoy.txt', 'w').write('reached')\n"
+                 f"except OSError as e: open('decoy.txt', 'w').write(f'refused {{e.errno}}')\n"
+                 f"s = socket.create_connection(('127.0.0.1', {port}), timeout=5); s.sendall(b'CONNECT example.com:443 HTTP/1.1\\r\\n\\r\\n')\n"
+                 f"open('proxy.txt', 'wb').write(s.recv(4096))\n")
+        try:
+            code = la.run_shell([SYSTEM_PY, "-I", "-c", probe], port)
+        finally:
+            la.stop()
+            decoy.close()
+        answer = (work / "proxy.txt").read_bytes().decode() if (work / "proxy.txt").exists() else ""
+        decoy_said = (work / "decoy.txt").read_text() if (work / "decoy.txt").exists() else ""
+        shutil.rmtree(work, ignore_errors=True)
+        assert code == 0 and decoy_said.startswith("refused"), decoy_said
+        assert "not on the allowlist" in answer and "X-Sharness-Door" in answer      # the proxy answered, and knew the shell's uid
+
+    @needs_root_shell
+    def test_no_process_of_the_shell_outlives_it(self):
+        import pwd
+        import time
+        from sharness_ai.launcher import Launcher
+        from sharness_ai.launcher.Watch import processes
+        work = _shell_workspace()
+        la = Launcher(str(work), [], ui=False)
+        info = la.start()
+        child = ("import os, time\nif os.fork() == 0:\n os.setsid()\n while True:\n  open('beat', 'a').write('x'); time.sleep(0.2)\n")
+        try:
+            la.run_shell([SYSTEM_PY, "-I", "-c", child], info["proxy_port"])
+        finally:
+            summary = la.stop()
+        time.sleep(0.6)
+        size = (work / "beat").stat().st_size if (work / "beat").exists() else 0
+        time.sleep(0.6)
+        after = (work / "beat").stat().st_size if (work / "beat").exists() else 0
+        shutil.rmtree(work, ignore_errors=True)
+        assert [p for p in processes(info["uid"]) if p["state"] != "Z"] == []         # SR-30
+        assert after == size and summary["cleanup"] == ""
+        with pytest.raises(KeyError):
+            pwd.getpwnam(info["user"])
+
+    @needs_root_shell
+    def test_the_shell_is_refused_when_its_uid_could_change_the_code_that_confines_it(self):
+        from sharness_ai.launcher import Launcher
+        from sharness_ai.launcher.Launcher import PKG_PARENT, LaunchError
+        la = Launcher(PKG_PARENT, [], ui=False)            # the package inside the workspace (SR-31)
+        try:
+            with pytest.raises(LaunchError, match="SR-31"):
+                la.start()
+        finally:
+            la.stop()
+
+    def test_a_tls_hello_sent_in_pieces_is_read_whole_before_the_name_is_checked(self):
+        import socket
+        import ssl
+        import threading
+        import time
+        from sharness_ai.door.Verdict import Audit
+        from sharness_ai.net.Rows import NetRows
+        from sharness_ai.net.proxy.Proxy import Proxy, sni
+
+        def hello(name):
+            i, o = ssl.MemoryBIO(), ssl.MemoryBIO()
+            tls = ssl.create_default_context().wrap_bio(i, o, server_hostname=name)
+            with pytest.raises(ssl.SSLWantReadError):
+                tls.do_handshake()
+            return o.read()
+
+        seen = []
+        up = socket.socket()
+        up.bind(("127.0.0.1", 0))
+        up.listen()
+
+        def upstream():
+            while True:
+                c, _ = up.accept()
+                c.settimeout(2)
+                try:
+                    seen.append(sni(c.recv(65536)))
+                except OSError:
+                    seen.append(None)
+                c.close()
+        threading.Thread(target=upstream, daemon=True).start()
+        audit = Audit("sharness.net")
+        proxy = Proxy(NetRows(["localhost"], ports=[up.getsockname()[1]]), audit)
+        port = proxy.serve()
+
+        def tunnel(name, pieces):
+            s = socket.create_connection(("127.0.0.1", port))
+            s.sendall(f"CONNECT localhost:{up.getsockname()[1]} HTTP/1.1\r\n\r\n".encode())
+            s.recv(200)
+            h = hello(name)
+            for part in ((h[:5], h[5:40], h[40:]) if pieces else (h,)):
+                s.sendall(part)
+                time.sleep(0.1)
+            time.sleep(0.4)
+            s.close()
+        try:
+            tunnel("other.example", pieces=True)            # SR-29: a hello in pieces carried another name past the check
+            tunnel("localhost", pieces=True)                # the right name in pieces still goes through
+        finally:
+            proxy.stop()
+            up.close()
+        assert [x["allowed"] for x in audit.dump()] == [False, True]
+        assert "other.example" in audit.dump()[0]["reason"] and "other.example" not in seen and "localhost" in seen

@@ -2,7 +2,8 @@
 
 `CONNECT host:port` opens a tunnel to the host when the rows allow it and relays bytes both ways;
 the first bytes of the tunnel are read for the TLS client hello's SNI, which must name the same
-host (a tunnel to one name carrying another is domain fronting and is cut). A plain request with
+host (a tunnel to one name carrying another is domain fronting and is cut; the name inside the
+encrypted tunnel, an HTTP Host header, is not seen, since the proxy does not terminate TLS). A plain request with
 an absolute URL (`GET http://host/path`) is forwarded once, Connection: close. Every request is one
 audit line: method, host:port, bytes, verdict, the row. The connecting process's uid is read from
 /proc/net/tcp (the socket table names the owner of every loopback socket), so a proxy started for
@@ -19,14 +20,16 @@ from sharness_ai.net.Rows import NetRows
 TIMEOUT = 30
 IDLE = 300
 MAX_HEAD = 16 << 10
+MAX_HELLO = 5 + (16 << 10)             # one TLS record: a ClientHello longer than that is refused, not guessed at
 
 
-def peer_uid(addr: tuple):
-    """The uid that owns the loopback socket bound to `addr` (ip, port), from /proc/net/tcp; None if unknown."""
+def peer_uid(addr: tuple, table: str = "/proc/net/tcp"):
+    """The uid that owns the loopback socket bound to `addr` (ip, port), from the socket table of the
+    namespace the connection came from (/proc/<pid>/net/tcp for the shell's own); None if unknown."""
     ip, port = addr[0], addr[1]
     want = struct.unpack("<I", socket.inet_aton(ip))[0]
     try:
-        with open("/proc/net/tcp") as f:
+        with open(table) as f:
             next(f)
             for line in f:
                 cols = line.split()
@@ -60,16 +63,31 @@ def sni(hello: bytes):
     return None
 
 
+def read_hello(conn, first: bytes) -> bytes:
+    """The first TLS record whole: a client may send its hello in pieces, and a check on the first piece
+    alone saw no name and let any name through (security review 2, SR-29)."""
+    while first[:1] == b"\x16" and len(first) < MAX_HELLO:
+        if len(first) >= 5 and len(first) >= 5 + int.from_bytes(first[3:5], "big"):
+            break
+        more = conn.recv(MAX_HELLO - len(first))
+        if not more:
+            break
+        first += more
+    return first
+
+
 class Proxy:
-    def __init__(self, rows: NetRows, audit: Audit, port: int = 0, host: str = "127.0.0.1", allowed_uid: int = None):
+    def __init__(self, rows: NetRows, audit: Audit, port: int = 0, host: str = "127.0.0.1", allowed_uid: int = None,
+                 table: str = "/proc/net/tcp"):
         self.rows, self.audit, self.host, self.port, self.allowed_uid = rows, audit, host, port, allowed_uid
+        self.table = table                       # the socket table of the namespace the callers are in
         self.server = None
         self.active = 0
         self.lock = threading.Lock()
 
     def decide(self, peer_addr, method: str, host: str, port: int) -> Verdict:
         if self.allowed_uid is not None:
-            uid = peer_uid(peer_addr)
+            uid = peer_uid(peer_addr, self.table)
             if uid != self.allowed_uid:
                 return Verdict.refuse(f"the caller is uid {uid}, not the shell's uid {self.allowed_uid}", "one uid per proxy")
         with self.lock:
@@ -77,7 +95,8 @@ class Proxy:
                 return Verdict.refuse(f"{self.active} connections open: the row's max_connections", f"max_connections {self.rows.max_connections}")
         return self.rows.allow(host, port)
 
-    def serve(self, background: bool = True) -> int:
+    def serve(self, background: bool = True, sock: socket.socket = None) -> int:
+        """Serve on (host, port), or on `sock`, a listening socket made elsewhere (the shell's namespace)."""
         proxy = self
 
         class Handler(socketserver.StreamRequestHandler):
@@ -113,24 +132,24 @@ class Proxy:
                     self._forward(method, host or hostport, int(port) if port.isdigit() else 80, "/" + path, head)
                 else:
                     v = Verdict.refuse("this is a proxy: send CONNECT host:443 or an absolute http:// URL", "ACCEPTS.json", status=400)
-                    proxy.audit.record(f"uid {peer_uid(self.client_address)}", method, target, 0, v)
+                    proxy.audit.record(f"uid {peer_uid(self.client_address, proxy.table)}", method, target, 0, v)
                     self._reply(400, "Bad Request", v.reason)
 
             def _open(self, method, host, port):
                 v = proxy.decide(self.client_address, method, host, port)
                 if not v.allowed:
-                    proxy.audit.record(f"uid {peer_uid(self.client_address)}", method, f"{host}:{port}", 0, v)
+                    proxy.audit.record(f"uid {peer_uid(self.client_address, proxy.table)}", method, f"{host}:{port}", 0, v)
                     self._reply(403, "Forbidden", f"refused by sharness.net.proxy: {v.reason} (row: {v.row})")
                     return None
                 try:
                     up = socket.create_connection((host, port), timeout=TIMEOUT)
                 except OSError as e:
                     v = Verdict.refuse(f"the host did not answer: {e}", status=502)
-                    proxy.audit.record(f"uid {peer_uid(self.client_address)}", method, f"{host}:{port}", 0, v)
+                    proxy.audit.record(f"uid {peer_uid(self.client_address, proxy.table)}", method, f"{host}:{port}", 0, v)
                     self._reply(502, "Bad Gateway", v.reason)
                     return None
                 # the decision is audited when it is made, in order; the byte count is filled in when the relay ends
-                self.line = proxy.audit.record(f"uid {peer_uid(self.client_address)}", method, f"{host}:{port}", 0, v)
+                self.line = proxy.audit.record(f"uid {peer_uid(self.client_address, proxy.table)}", method, f"{host}:{port}", 0, v)
                 return up
 
             def _tunnel(self, host, port):
@@ -139,11 +158,11 @@ class Proxy:
                     return
                 self.wfile.write(b"HTTP/1.1 200 Connection established\r\nX-Sharness-Door: sharness.net.proxy\r\n\r\n")
                 self.wfile.flush()
-                first = self.connection.recv(16384)
+                first = read_hello(self.connection, self.connection.recv(16384))
                 name = sni(first)
-                if name and name != host.lower():
+                if first[:1] == b"\x16" and name != host.lower():     # TLS that names another host, or none we can read: cut
                     up.close()
-                    v = Verdict.refuse(f"the TLS hello names {name}, the tunnel was for {host}", "no domain fronting")
+                    v = Verdict.refuse(f"the TLS hello names {name or 'no server we could read'}, the tunnel was for {host}", "no domain fronting")
                     self.line.update({"allowed": False, "status": 403, "reason": v.reason, "row": v.row, "bytes": len(first)})
                     return
                 self.line["bytes"] = self._relay(up, first)
@@ -194,7 +213,10 @@ class Proxy:
             def handle_error(self, request, client_address):
                 proxy.audit.record("?", "-", "-", 0, Verdict.refuse("connection error", status=0))
 
-        self.server = Server((self.host, self.port), Handler)
+        self.server = Server((self.host, self.port), Handler, bind_and_activate=sock is None)
+        if sock is not None:
+            self.server.socket.close()
+            self.server.socket = sock
         self.port = self.server.server_address[1]
         if background:
             threading.Thread(target=self.server.serve_forever, daemon=True).start()

@@ -36,7 +36,7 @@ class CLI__Shell:
             lines += d.kv("network", f"only 127.0.0.1:{info['proxy_port']}, sharness.net.proxy{sep}hosts {' '.join(args.sites or []) or 'none'}{sep}HTTPS_PROXY set")
             lines += d.kv("held", f"{t.mark('ok')} files, the port and the caps by the kernel{sep}{t.mark('ok')} the host names by sharness.net (a Boundary for the shell: another uid, outside it)" if info["user"]
                           else f"{t.mark('ok')} files, the port and the caps by the kernel{sep}the host names by sharness.net (same uid: a Setting)", style="ok")
-            lines += d.kv("not covered", "UDP (a program that resolves names itself), Unix sockets by path, kernel refusals on the page", style="dim")
+            lines += d.kv("not covered", "Unix sockets by path, kernel refusals on the page; the namespace has loopback only, so a program that resolves names itself finds no DNS", style="dim")
             if info["ui"]:
                 lines += d.kv("live page", info["ui"], style="head")
             lines += d.kv("exit", "leave the shell and the session, the doors and the user are removed", style="dim")
@@ -50,6 +50,8 @@ class CLI__Shell:
             t.write(d.rule(f"{os.path.basename(argv[0])} exit {code}"))
             t.write(*d.kv("summary", f"{summary['requests']} requests through sharness.net: {summary['allowed']} allowed, {summary['refused']} refused"
                                      + (f"; hosts reached: {' '.join(summary['hosts'])}" if summary["hosts"] else ""), style="bold"))
+            if summary["cleanup"]:
+                t.write(*d.kv("not undone", summary["cleanup"], style="warn"))
         else:
             print(json.dumps({"exit": code, **summary}), file=sys.stderr)
         return code
