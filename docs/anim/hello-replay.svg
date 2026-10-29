@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="ui-monospace,Menlo,Consolas,monospace" role="img" aria-labelledby="t d">
+  <title id="t">sharness-ai hello, replayed: six probes under a deny-all policy, six held</title>
+  <desc id="d">A terminal replays the hello command line by line. The policy and its hash, then six probes: read allowed; write to /tmp refused with Permission denied; write to the workspace refused; a TCP connect refused; a 400 MiB allocation under a 128 MiB cap refused with MemoryError; a wrong policy hash refused, nothing ran. Then: result 6 of 6 held, and the caveat that a policy a process applies to its own children is a Boundary for them and a Setting for itself. Recorded in a Claude Code cloud session on 25 October 2026.</desc>
+  <style>
+    .l{opacity:0;animation:show 18s infinite}
+    .l1{animation-delay:.4s}.l2{animation-delay:1.4s}.l3{animation-delay:2s}.l4{animation-delay:2.5s}.l5{animation-delay:3s}
+    .l6{animation-delay:4.2s}.l7{animation-delay:5.4s}.l8{animation-delay:6.6s}.l9{animation-delay:7.8s}.l10{animation-delay:9s}.l11{animation-delay:10.2s}
+    .l12{animation-delay:11.6s}.l13{animation-delay:12.4s}.l14{animation-delay:12.9s}
+    .cur{animation:blink 1s infinite}
+    @keyframes show{0%{opacity:0}3%{opacity:1}92%{opacity:1}100%{opacity:0}}
+    @keyframes blink{50%{opacity:0}}
+    @media(prefers-reduced-motion:reduce){.l{animation:none;opacity:1}.cur{animation:none}}
+    .g{fill:#3fb950}.r{fill:#f85149}.d{fill:#8b949e}.w{fill:#e6edf3}.y{fill:#d29922}.c{fill:#58a6ff}
+  </style>
+  <rect width="960" height="420" rx="12" fill="#0d1117"/>
+  <circle cx="24" cy="22" r="6" fill="#ff5f57"/><circle cx="44" cy="22" r="6" fill="#febc2e"/><circle cx="64" cy="22" r="6" fill="#28c840"/>
+  <text x="480" y="26" font-size="11" class="d" text-anchor="middle">sharness-ai hello · a Claude Code cloud session · 25 Oct 2026 · 0.6 s</text>
+  <g font-size="12.5">
+    <text x="24" y="60" class="l l1"><tspan class="g">$</tspan><tspan class="w"> sharness-ai hello</tspan></text>
+    <text x="24" y="84" class="l l2 w">sharness-ai hello   experiment E04: the memo's acceptance test, for one child process</text>
+    <text x="24" y="104" class="l l3"><tspan class="d">policy      </tspan><tspan class="w">hello  </tspan><tspan class="c">sha256:dcf9309afd9c0f8f271e9b40d077e384ebe7d9b57f58461d50342657e24b6fbf</tspan></text>
+    <text x="24" y="124" class="l l4 d">            read-only: /bin, /etc, /lib, /lib64, /opt, /sbin, /usr, /work · write: none · network: none · memory: 128 MiB</text>
+    <text x="24" y="144" class="l l5"><tspan class="d">kernel      </tspan><tspan class="w">Landlock ABI 7 · empty network namespace: yes</tspan></text>
+    <text x="24" y="172" class="l l6"><tspan class="g">  ✔ read      </tspan><tspan class="d"> expected allowed  got </tspan><tspan class="w">allowed</tspan></text>
+    <text x="24" y="192" class="l l7"><tspan class="g">  ✔ write-tmp </tspan><tspan class="d"> expected refused  got </tspan><tspan class="w">refused </tspan><tspan class="r">(PermissionError: [Errno 13] Permission denied: '/tmp/sharness-ai-hello.tmp')</tspan></text>
+    <text x="24" y="212" class="l l8"><tspan class="g">  ✔ write-cwd </tspan><tspan class="d"> expected refused  got </tspan><tspan class="w">refused </tspan><tspan class="r">(PermissionError: [Errno 13] Permission denied: 'sharness-ai-hello.tmp')</tspan></text>
+    <text x="24" y="232" class="l l9"><tspan class="g">  ✔ net       </tspan><tspan class="d"> expected refused  got </tspan><tspan class="w">refused </tspan><tspan class="r">(PermissionError: [Errno 13] Permission denied)</tspan></text>
+    <text x="24" y="252" class="l l10"><tspan class="g">  ✔ memory    </tspan><tspan class="d"> expected refused  got </tspan><tspan class="w">refused </tspan><tspan class="r">(MemoryError)</tspan></text>
+    <text x="24" y="272" class="l l11"><tspan class="g">  ✔ hash      </tspan><tspan class="d"> expected refused  got </tspan><tspan class="w">refused</tspan><tspan class="d">  (a wrong --expect-hash: nothing ran)</tspan></text>
+    <text x="24" y="304" class="l l12"><tspan class="d">result      </tspan><tspan class="g" font-weight="700">6/6 held</tspan></text>
+    <text x="24" y="330" class="l l13"><tspan class="d">caveat      </tspan><tspan class="y">applied by this process to its own children: a Boundary for them, a Setting for whoever</tspan></text>
+    <text x="24" y="348" class="l l13 y">            ran this, who could have skipped it. The launcher that makes it a Boundary for the agent too is the design.</text>
+    <text x="24" y="384" class="l l14"><tspan class="g">$</tspan><tspan class="w cur"> ▌</tspan></text>
+  </g>
+  <text x="936" y="404" font-size="10" class="d" text-anchor="end" font-family="ui-sans-serif,system-ui,sans-serif">the same run held 6 of 6 in a browser tab, in Node, and through chroot · sharness.ai/evidence</text>
+</svg>

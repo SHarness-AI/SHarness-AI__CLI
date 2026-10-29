@@ -1,0 +1,16 @@
+{
+  "name": "sharness-ai-e09-browser",
+  "private": true,
+  "description": "E09: sharness-ai under a real Linux kernel in v86, in Node and in a browser tab. Not part of the sharness-ai package.",
+  "type": "module",
+  "scripts": {
+    "build": "python3 build_guest.py",
+    "node": "node boot_node.mjs",
+    "browser": "node boot_browser.mjs",
+    "playground": "node test_playground.mjs",
+    "native": "sh chroot_native.sh"
+  },
+  "dependencies": {
+    "v86": "0.5.472"
+  }
+}

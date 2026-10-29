@@ -1,0 +1,2 @@
+{"schema": "sharness-ai.door-contract/v0", "door": "sharness.net",
+ "targets": {"proxy": "a TCP connection to host:port on the allowlist, bytes relayed unchanged; nothing else leaves"}}

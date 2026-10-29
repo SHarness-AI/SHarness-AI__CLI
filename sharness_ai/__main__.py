@@ -1,3 +1,5 @@
+import sys
+
 from sharness_ai.cli import main
 
-main()
+sys.exit(main())

@@ -1,0 +1,53 @@
+{
+ "pbp": 1,
+ "profile": "web-fetch",
+ "title": "a fetcher: reaches the web on 80 and 443, writes one output folder",
+ "version": 1,
+ "notes": "P5 as a profile: http and https sites, one writable folder.",
+ "blanks": {
+  "workspace": null,
+  "sites": [
+   "http://sharness.ai",
+   "sharness.ai"
+  ],
+  "secrets": [],
+  "memory_mb": 256,
+  "pids": 16
+ },
+ "template": {
+  "pbp": 1,
+  "id": "web-fetch",
+  "layer": "invocation",
+  "notes": "P5 as a profile: http and https sites, one writable folder.",
+  "files": {
+   "read": [
+    "/usr",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin",
+    "/etc",
+    "$workspace"
+   ],
+   "write": [
+    "$workspace/out"
+   ],
+   "exec": [
+    "/usr",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin"
+   ]
+  },
+  "network": {
+   "sites": "$sites"
+  },
+  "secrets": "$secrets",
+  "process": {
+   "no_new_privs": true,
+   "max_memory_mb": "$memory_mb",
+   "max_pids": "$pids"
+  }
+ }
+}

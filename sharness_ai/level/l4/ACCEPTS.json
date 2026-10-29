@@ -1,0 +1,17 @@
+{
+ "schema": "sharness-ai.level/v0",
+ "level": 4,
+ "document": {
+  "pbp": 1,
+  "level": 4,
+  "profile": "one of profiles/*.json",
+  "id": "string?",
+  "blanks": {
+   "workspace": "absolute path (required unless the profile defaults it)",
+   "sites": "[host]?",
+   "secrets": "[name]?",
+   "memory_mb": "int?",
+   "pids": "int?"
+  }
+ }
+}

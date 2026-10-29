@@ -1,0 +1,501 @@
+{
+ "schema": "sharness-ai.level-vectors/v0",
+ "level": 4,
+ "emits": 3,
+ "accept": [
+  {
+   "name": "profile-coding-agent-defaults",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "coding-agent",
+    "blanks": {
+     "workspace": "/work/repo"
+    }
+   },
+   "hash": "sha256:5b851a4572b2dbf1afd2d060fb761c4915e30a3470ca48869b244169ce1c8e2f",
+   "expands_to": {
+    "pbp": 1,
+    "id": "coding-agent",
+    "layer": "invocation",
+    "notes": "P1 as a profile: the agent writes the workspace, reads the system, reaches the forge, the package index and the model API; a tool it starts gets a narrower profile.",
+    "files": {
+     "read": [
+      "/bin",
+      "/etc",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr",
+      "/work/repo"
+     ],
+     "write": [
+      "/work/repo"
+     ],
+     "exec": [
+      "/bin",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr"
+     ]
+    },
+    "network": {
+     "sites": [
+      "api.anthropic.com",
+      "github.com",
+      "pypi.org"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 4096,
+     "max_pids": 512
+    },
+    "level": 3
+   },
+   "expands_to_hash": "sha256:3f10ab8ee10cee7e1a5d4837dc134f1e72701c888d4aad5f39b0f9af6b793b16"
+  },
+  {
+   "name": "profile-hello-world-defaults",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "hello-world",
+    "blanks": {
+     "workspace": "/work/repo"
+    }
+   },
+   "hash": "sha256:c18ee362cfa821a6f2040fcfd7c9036e47c9ecee332bf9533002a6e974b31ddd",
+   "expands_to": {
+    "pbp": 1,
+    "id": "hello-world",
+    "layer": "invocation",
+    "notes": "P0 as a profile: the smallest honest policy; a first run.",
+    "files": {
+     "read": [
+      "/bin",
+      "/etc",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr",
+      "/work/repo"
+     ],
+     "write": [],
+     "exec": [
+      "/bin",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr"
+     ]
+    },
+    "network": "none",
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 64,
+     "max_pids": 8
+    },
+    "level": 3
+   },
+   "expands_to_hash": "sha256:6f1e395e938c875b31ea9e478a7c6e1fa8ff94795da58bf7ef95d346b92a57fa"
+  },
+  {
+   "name": "profile-newsroom-agent-defaults",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "newsroom-agent",
+    "blanks": {
+     "workspace": "/work/repo"
+    }
+   },
+   "hash": "sha256:62573b5c56006ab2b512a047a16a885cabb6184347a4002e32ada78882b16c1f",
+   "expands_to": {
+    "pbp": 1,
+    "id": "newsroom-agent",
+    "layer": "invocation",
+    "notes": "P3 as a profile: reads the vault and the output, writes only the output.",
+    "files": {
+     "read": [
+      "/bin",
+      "/etc",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr",
+      "/work/repo",
+      "/work/repo/out"
+     ],
+     "write": [
+      "/work/repo/out"
+     ],
+     "exec": [
+      "/bin",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr"
+     ]
+    },
+    "network": {
+     "sites": [
+      "send.sgraph.ai"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 1024,
+     "max_pids": 64
+    },
+    "level": 3
+   },
+   "expands_to_hash": "sha256:cb09eef319b3a7c0d17e1ed440a38b7fe37d39b255d14d7a8e4cc5a43f535d7c"
+  },
+  {
+   "name": "profile-tool-server-defaults",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "tool-server",
+    "blanks": {
+     "workspace": "/work/repo"
+    }
+   },
+   "hash": "sha256:88fd9b4fb74d8ef3d4c1935559af8d6052c4fd1dbc40b3a128365b2254ed8cca",
+   "expands_to": {
+    "pbp": 1,
+    "id": "tool-server",
+    "layer": "invocation",
+    "notes": "P2 as a profile: results go back over stdio; a tool that must reach one service names that site.",
+    "files": {
+     "read": [
+      "/bin",
+      "/etc",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr",
+      "/work/repo"
+     ],
+     "write": [],
+     "exec": [
+      "/bin",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr"
+     ]
+    },
+    "network": "none",
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 512,
+     "max_pids": 16
+    },
+    "level": 3
+   },
+   "expands_to_hash": "sha256:9892e2e72618649ac07f33277cd412b884073201ec4724aa334434be46af921c"
+  },
+  {
+   "name": "profile-vault-cli-defaults",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "vault-cli",
+    "blanks": {
+     "workspace": "/work/repo"
+    }
+   },
+   "hash": "sha256:be82c4e7b10369f4efef8a412461f0273ca4c6a9d8953f5bc1f399b9306e094b",
+   "expands_to": {
+    "pbp": 1,
+    "id": "vault-cli",
+    "layer": "invocation",
+    "notes": "P4 as a profile: sgit; the vault under the workspace is writable, the clone read-only.",
+    "files": {
+     "read": [
+      "/bin",
+      "/etc",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr",
+      "/work/repo"
+     ],
+     "write": [
+      "/tmp",
+      "/work/repo/vault"
+     ],
+     "exec": [
+      "/bin",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr"
+     ]
+    },
+    "network": {
+     "sites": [
+      "send.sgraph.ai"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 512,
+     "max_pids": 16
+    },
+    "level": 3
+   },
+   "expands_to_hash": "sha256:f7ba2fc4a7eb64c2016799e281d1e355b501d4000ed1d7e72f7ab8ab40989a99"
+  },
+  {
+   "name": "profile-web-fetch-defaults",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "web-fetch",
+    "blanks": {
+     "workspace": "/work/repo"
+    }
+   },
+   "hash": "sha256:20a6d55433b589ce2b12ff73fb511cbcaf6047eb24b20952a70a76b505b5c367",
+   "expands_to": {
+    "pbp": 1,
+    "id": "web-fetch",
+    "layer": "invocation",
+    "notes": "P5 as a profile: http and https sites, one writable folder.",
+    "files": {
+     "read": [
+      "/bin",
+      "/etc",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr",
+      "/work/repo"
+     ],
+     "write": [
+      "/work/repo/out"
+     ],
+     "exec": [
+      "/bin",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr"
+     ]
+    },
+    "network": {
+     "sites": [
+      "http://sharness.ai",
+      "sharness.ai"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "level": 3
+   },
+   "expands_to_hash": "sha256:c3487c15e2b6054b45e5d5a4ae9f4093796ad515bd16761cac34885c43b17025"
+  },
+  {
+   "name": "coding-agent-with-sites",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "coding-agent",
+    "blanks": {
+     "workspace": "/work/repo",
+     "sites": [
+      "github.com"
+     ]
+    }
+   },
+   "hash": "sha256:d68d9622ec4362e3e66f8d6f18b9d78b1e5ad9fbb9e836e3a530c75de6f76717",
+   "expands_to": {
+    "pbp": 1,
+    "id": "coding-agent",
+    "layer": "invocation",
+    "notes": "P1 as a profile: the agent writes the workspace, reads the system, reaches the forge, the package index and the model API; a tool it starts gets a narrower profile.",
+    "files": {
+     "read": [
+      "/bin",
+      "/etc",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr",
+      "/work/repo"
+     ],
+     "write": [
+      "/work/repo"
+     ],
+     "exec": [
+      "/bin",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr"
+     ]
+    },
+    "network": {
+     "sites": [
+      "github.com"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 4096,
+     "max_pids": 512
+    },
+    "level": 3
+   },
+   "expands_to_hash": "sha256:68d893e539f30b50682c2ec7dde88545a4ac838df957e0300bbbb4d34761b76e"
+  },
+  {
+   "name": "hello-world-with-budget",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "hello-world",
+    "blanks": {
+     "workspace": "/work/repo",
+     "memory_mb": 32,
+     "pids": 4
+    }
+   },
+   "hash": "sha256:13b09cb0f86303842e3d1bb7e9e9fd7abd3b66e2a11991c2ff434de4d94a773c",
+   "expands_to": {
+    "pbp": 1,
+    "id": "hello-world",
+    "layer": "invocation",
+    "notes": "P0 as a profile: the smallest honest policy; a first run.",
+    "files": {
+     "read": [
+      "/bin",
+      "/etc",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr",
+      "/work/repo"
+     ],
+     "write": [],
+     "exec": [
+      "/bin",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr"
+     ]
+    },
+    "network": "none",
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 32,
+     "max_pids": 4
+    },
+    "level": 3
+   },
+   "expands_to_hash": "sha256:e95d8ba05446895d66d183b609c7cc1bd53cd7ac278ba5dc757301c6c1c9272d"
+  },
+  {
+   "name": "no-cap-when-zero",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "tool-server",
+    "blanks": {
+     "workspace": "/work/repo",
+     "memory_mb": 0,
+     "pids": 0
+    }
+   },
+   "hash": "sha256:27ca7e7a9969f510ce542df9009abda956060ac57296c40efe66a4c00e1105a3",
+   "expands_to": {
+    "pbp": 1,
+    "id": "tool-server",
+    "layer": "invocation",
+    "notes": "P2 as a profile: results go back over stdio; a tool that must reach one service names that site.",
+    "files": {
+     "read": [
+      "/bin",
+      "/etc",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr",
+      "/work/repo"
+     ],
+     "write": [],
+     "exec": [
+      "/bin",
+      "/lib",
+      "/lib64",
+      "/sbin",
+      "/usr"
+     ]
+    },
+    "network": "none",
+    "process": {
+     "no_new_privs": true
+    },
+    "level": 3
+   },
+   "expands_to_hash": "sha256:6564487797151ba44fe3d735f748cc46b32581c1b76ffdf097bed7730de4cf88"
+  }
+ ],
+ "refuse": [
+  {
+   "name": "unknown-profile",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "nope",
+    "blanks": {
+     "workspace": "/work/repo"
+    }
+   },
+   "reason": "level 4: profile must be one of coding-agent, hello-world, newsroom-agent, tool-server, vault-cli, web-fetch"
+  },
+  {
+   "name": "relative-workspace",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "hello-world",
+    "blanks": {
+     "workspace": "repo"
+    }
+   },
+   "reason": "level 4: blanks.workspace must be an absolute, normalised path"
+  },
+  {
+   "name": "unknown-blank",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "hello-world",
+    "blanks": {
+     "workspace": "/work/repo",
+     "colour": "blue"
+    }
+   },
+   "reason": "level 4: blanks.colour: unknown blank; the blanks are workspace, sites, secrets, memory_mb, pids"
+  },
+  {
+   "name": "missing-workspace",
+   "document": {
+    "pbp": 1,
+    "level": 4,
+    "profile": "hello-world",
+    "blanks": {}
+   },
+   "reason": "level 4: the profile 'hello-world' leaves workspace blank and the document does not fill them"
+  }
+ ]
+}

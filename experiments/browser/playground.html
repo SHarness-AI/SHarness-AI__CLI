@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHarness playground: sharness-ai in Pyodide and in Linux</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;margin:0 auto;padding:1rem;max-width:84rem;color:#1f2328}h1{font-size:1.25rem}code{font-size:.9em}</style>
+</head><body>
+<h1>SHarness playground: <code>sharness-ai</code> in Pyodide and under a real Linux kernel</h1>
+<p>Two runtimes in this tab. Pyodide is Python in WebAssembly: install the dev wheel, then hash, check and translate policies; with no kernel, <code>run</code> and <code>hello</code> refuse. Linux is Alpine with a Landlock kernel in v86: a shell where every <code>sharness-ai run</code> is enforced by the kernel, on its child. A Boundary for the child, a Setting for the shell.</p>
+<div id="sharness-playground" data-assets="./"></div>
+<script type="module" src="playground.js"></script>
+</body></html>

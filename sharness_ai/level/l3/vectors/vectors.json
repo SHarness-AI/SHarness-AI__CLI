@@ -1,0 +1,958 @@
+{
+ "schema": "sharness-ai.level-vectors/v0",
+ "level": 3,
+ "emits": 2,
+ "accept": [
+  {
+   "name": "one-site-443",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "github.com"
+     ]
+    }
+   },
+   "hash": "sha256:a29bb3afc56bdd8d92f6dcd8e0cce3292d8ec40c91cabe911cbb92eb1ef2a3a2",
+   "expands_to": {
+    "pbp": 1,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "connect_tcp_ports": [
+      443
+     ]
+    }
+   },
+   "expands_to_hash": "sha256:3473cd2dd7662ceda2b870c8ff2a3f32473d4fa18899c947b0f0e0f89c027c02",
+   "unheld": [
+    "github.com: held as port 443; the host name is not held until sharness.net runs here"
+   ],
+   "passthrough": []
+  },
+  {
+   "name": "http-site-80",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "http://example.org"
+     ]
+    }
+   },
+   "hash": "sha256:ac2c2efe3884825576c03f8d7356473f57b6898e8f918647b0b3b407340fd7f3",
+   "expands_to": {
+    "pbp": 1,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "connect_tcp_ports": [
+      80
+     ]
+    }
+   },
+   "expands_to_hash": "sha256:bc890bbb423dcf51a17ed8db7a822992a73348d6ccf2d296ff21edef47dbfcff",
+   "unheld": [
+    "example.org: held as port 80; the host name is not held until sharness.net runs here"
+   ],
+   "passthrough": []
+  },
+  {
+   "name": "host-with-port",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "db.internal:8443"
+     ]
+    }
+   },
+   "hash": "sha256:d39cdc0d976e4692e7e220688c694449bf1a11832fa9f43bf2b8f161d66b1318",
+   "expands_to": {
+    "pbp": 1,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "connect_tcp_ports": [
+      8443
+     ]
+    }
+   },
+   "expands_to_hash": "sha256:d6c207ef562e175fdad2a182910ed13cf8e0225eb451f434f39fd1d880875494",
+   "unheld": [
+    "db.internal: held as port 8443; the host name is not held until sharness.net runs here"
+   ],
+   "passthrough": []
+  },
+  {
+   "name": "two-sites-one-port",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "github.com",
+      "https://pypi.org/simple"
+     ]
+    }
+   },
+   "hash": "sha256:c4d14bca6f45a0112d562f3e2f80b91c50dd3105fd6e3308dd51e70d678213f7",
+   "expands_to": {
+    "pbp": 1,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "connect_tcp_ports": [
+      443
+     ]
+    }
+   },
+   "expands_to_hash": "sha256:3473cd2dd7662ceda2b870c8ff2a3f32473d4fa18899c947b0f0e0f89c027c02",
+   "unheld": [
+    "github.com: held as port 443; the host name is not held until sharness.net runs here",
+    "pypi.org: held as port 443; the host name is not held until sharness.net runs here"
+   ],
+   "passthrough": []
+  },
+  {
+   "name": "sites-and-a-level-1-row",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "github.com"
+     ],
+     "connect_tcp_ports": [
+      8443
+     ]
+    }
+   },
+   "hash": "sha256:73e131b6350a10d74bddb9925ec9a27c4709e93b71657ae9f4fc829940d5ee28",
+   "expands_to": {
+    "pbp": 1,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "connect_tcp_ports": [
+      443,
+      8443
+     ]
+    }
+   },
+   "expands_to_hash": "sha256:bf91ace6d10e8fdf06f8604799c1022a32582f3a47562c2be7f215e0dc9a7e54",
+   "unheld": [
+    "github.com: held as port 443; the host name is not held until sharness.net runs here"
+   ],
+   "passthrough": [
+    "network.connect_tcp_ports [8443]: a level-1 row, passed through unchanged"
+   ]
+  },
+  {
+   "name": "no-network",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": "none"
+   },
+   "hash": "sha256:8497b8c64293236b58d128ae28e1caec6069efc33feec64159ab335dcb4ef49f",
+   "expands_to": {
+    "pbp": 1,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": "none"
+   },
+   "expands_to_hash": "sha256:f2f6599dc31298cb47bd742e475b6a6b48d2ad1c6014aae91d216479cd35f939",
+   "unheld": [],
+   "passthrough": []
+  },
+  {
+   "name": "empty-sites-is-none",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": []
+    }
+   },
+   "hash": "sha256:1def15fe50d73fbf4c03a6c45eaaeac23350b4a898f9afa289b2cc028cf29424",
+   "expands_to": {
+    "pbp": 1,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": "none"
+   },
+   "expands_to_hash": "sha256:f2f6599dc31298cb47bd742e475b6a6b48d2ad1c6014aae91d216479cd35f939",
+   "unheld": [],
+   "passthrough": []
+  },
+  {
+   "name": "secrets-named-are-unheld",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": "none",
+    "secrets": [
+     "OPENAI_API_KEY"
+    ]
+   },
+   "hash": "sha256:3c34f4e4b019d95c801ddf9580bd262b3d687dae8cd948e2385a7410cb95f496",
+   "expands_to": {
+    "pbp": 1,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": "none"
+   },
+   "expands_to_hash": "sha256:f2f6599dc31298cb47bd742e475b6a6b48d2ad1c6014aae91d216479cd35f939",
+   "unheld": [
+    "secrets ['OPENAI_API_KEY']: no door holds a secret here yet (sharness.kms is designed, not built)"
+   ],
+   "passthrough": []
+  },
+  {
+   "name": "upper-case-host-is-lowered",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "GitHub.com"
+     ]
+    }
+   },
+   "hash": "sha256:d0fd9359d7202055824e70f0242bc4d9fc8eef9438f78984afb782d745af6fdf",
+   "expands_to": {
+    "pbp": 1,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "connect_tcp_ports": [
+      443
+     ]
+    }
+   },
+   "expands_to_hash": "sha256:3473cd2dd7662ceda2b870c8ff2a3f32473d4fa18899c947b0f0e0f89c027c02",
+   "unheld": [
+    "github.com: held as port 443; the host name is not held until sharness.net runs here"
+   ],
+   "passthrough": []
+  }
+ ],
+ "refuse": [
+  {
+   "name": "a-path-not-a-host",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "not a host"
+     ]
+    }
+   },
+   "reason": "level 3: network.sites: 'not a host' is not a host name (no scheme, no path, lower case)"
+  },
+  {
+   "name": "a-scheme-we-do-not-know",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "ftp://x.org"
+     ]
+    }
+   },
+   "reason": "level 3: network.sites: 'ftp://x.org': the port must be 1 to 65535"
+  },
+  {
+   "name": "a-bad-port",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "x.org:70000"
+     ]
+    }
+   },
+   "reason": "level 3: network.sites: 'x.org:70000': the port must be 1 to 65535"
+  },
+  {
+   "name": "an-unknown-network-key",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "x.org"
+     ],
+     "hosts": [
+      "y"
+     ]
+    }
+   },
+   "reason": "level 3: network.hosts: unknown key at level 3"
+  },
+  {
+   "name": "wrong-level",
+   "document": {
+    "pbp": 1,
+    "level": 2,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "github.com"
+     ]
+    }
+   },
+   "reason": "level 3: level must be 3"
+  },
+  {
+   "name": "a-relative-path",
+   "document": {
+    "pbp": 1,
+    "level": 3,
+    "id": "t",
+    "files": {
+     "read": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin",
+      "/etc",
+      "/work",
+      "work"
+     ],
+     "write": [
+      "/work/out"
+     ],
+     "exec": [
+      "/usr",
+      "/lib",
+      "/lib64",
+      "/bin",
+      "/sbin"
+     ]
+    },
+    "process": {
+     "no_new_privs": true,
+     "max_memory_mb": 256,
+     "max_pids": 16
+    },
+    "network": {
+     "sites": [
+      "github.com"
+     ]
+    }
+   },
+   "reason": "level 3: files.read: 'work' must be an absolute path"
+  }
+ ]
+}

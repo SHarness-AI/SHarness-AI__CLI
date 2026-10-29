@@ -1,0 +1,9 @@
+{
+ "pbp": 1,
+ "id": "p5-web-fetch",
+ "layer": "component",
+ "notes": "P5, a tool that fetches web pages for an agent: read the system and the workspace at /work, write its results under /work/out only, run the system, TCP connect to ports 80 and 443, 256 MiB, 16 processes. Which hosts is still sharness.net's job (v0 says ports, not names); in the browser bench the page's egress allowlist plays that part, outside the guest.",
+ "files": {"read": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/work"], "write": ["/work/out"], "exec": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc"]},
+ "network": {"connect_tcp_ports": [80, 443]},
+ "process": {"no_new_privs": true, "max_memory_mb": 256, "max_pids": 16}
+}

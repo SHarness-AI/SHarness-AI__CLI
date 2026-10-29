@@ -218,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# E09 (experiments/browser): fetched packages, the built guest, node_modules
+experiments/browser/cache/
+experiments/browser/out/
+experiments/browser/node_modules/

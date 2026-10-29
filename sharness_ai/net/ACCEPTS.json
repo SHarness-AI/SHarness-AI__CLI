@@ -1,0 +1,13 @@
+{
+ "schema": "sharness-ai.door-contract/v0",
+ "door": "sharness.net",
+ "nouns": ["host", "port"],
+ "routes": [],
+ "always": ["GET /v0/hello", "GET /v0/policy", "GET /v0/log (the launcher only)"],
+ "proxy_face": {
+  "where": "a second loopback port, plain HTTP, for one uid (read from /proc/net/tcp)",
+  "accepts": ["CONNECT host:port (a tunnel; the TLS hello's SNI must name the same host)", "METHOD http://host[:port]/path (forwarded once, Connection: close)"],
+  "verdicts": {"200": "tunnel open or forwarded", "403": "refused, with the row", "502": "the host did not answer", "400": "not a proxy request"}
+ },
+ "predicates": ["hosts (exact or *.suffix)", "ports", "refuse_ip_literals", "max_connections"]
+}

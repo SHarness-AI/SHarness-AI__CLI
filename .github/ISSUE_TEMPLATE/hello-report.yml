@@ -1,0 +1,29 @@
+name: hello report: what sharness-ai hello said on your machine
+description: Two fields. Every report, including a probe that did not hold, goes on sharness.ai/evidence/machines with this issue linked.
+title: "hello report: <distribution or environment>, kernel <version>"
+labels: ["hello-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Run these two lines and paste the output of the second one below:
+
+        ```
+        pip install git+https://github.com/SHarness-AI/SHarness-AI__CLI@dev
+        sharness-ai hello --json
+        ```
+
+        The JSON carries the kernel version, the Landlock ABI, the effective uid, the Python version, the policy hash and each probe's result. It carries no hostnames, usernames or paths outside the working directory's name, and never the value of an environment variable. Check it before you paste it if you want to be sure.
+  - type: textarea
+    id: json
+    attributes:
+      label: The JSON from `sharness-ai hello --json`
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything odd
+      description: A probe that did not hold, an error, a slow run, a container or VM you ran it in, a kernel you built yourself. A refusal that did not happen is the most useful thing you can send.
+      placeholder: Ran as a normal user on Fedora 42 in a toolbox container; the net probe said allowed.

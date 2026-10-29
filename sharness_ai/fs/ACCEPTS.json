@@ -1,0 +1,16 @@
+{
+ "schema": "sharness-ai.door-contract/v0",
+ "door": "sharness.fs",
+ "nouns": ["path (relative to the root)", "operation", "content (bytes)"],
+ "routes": [
+  {"method": "GET", "path": "/v0/files", "op": "list", "body": "none"},
+  {"method": "GET", "path": "/v0/files/{path}", "op": "read", "body": "none"},
+  {"method": "PUT", "path": "/v0/files/{path}", "op": "write", "body": "the bytes"},
+  {"method": "POST", "path": "/v0/files/{path}/append", "op": "append", "body": "the bytes"},
+  {"method": "DELETE", "path": "/v0/files/{path}", "op": "delete", "body": "none"},
+  {"method": "POST", "path": "/v0/mkdir", "op": "mkdir", "body": "{\"path\": \"...\"}"}
+ ],
+ "always": ["GET /v0/hello", "GET /v0/policy", "GET /v0/log (the launcher only)"],
+ "verdicts": {"201": "written", "204": "deleted", "403": "refused, with the row", "404": "not accepted or no such file", "502": "the target refused"},
+ "predicates": ["within_root (always)", "refuse_secrets (always)", "max_bytes", "append_only"]
+}

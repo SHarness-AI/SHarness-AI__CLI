@@ -1,0 +1,48 @@
+{
+ "pbp": 1,
+ "profile": "tool-server",
+ "title": "a tool or MCP server on stdio: read-only, no network",
+ "version": 1,
+ "notes": "P2 as a profile: results go back over stdio; a tool that must reach one service names that site.",
+ "blanks": {
+  "workspace": null,
+  "sites": [],
+  "secrets": [],
+  "memory_mb": 512,
+  "pids": 16
+ },
+ "template": {
+  "pbp": 1,
+  "id": "tool-server",
+  "layer": "invocation",
+  "notes": "P2 as a profile: results go back over stdio; a tool that must reach one service names that site.",
+  "files": {
+   "read": [
+    "/usr",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin",
+    "/etc",
+    "$workspace"
+   ],
+   "write": [],
+   "exec": [
+    "/usr",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin"
+   ]
+  },
+  "network": {
+   "sites": "$sites"
+  },
+  "secrets": "$secrets",
+  "process": {
+   "no_new_privs": true,
+   "max_memory_mb": "$memory_mb",
+   "max_pids": "$pids"
+  }
+ }
+}

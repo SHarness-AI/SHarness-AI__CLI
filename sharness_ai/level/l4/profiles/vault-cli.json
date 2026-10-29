@@ -1,0 +1,53 @@
+{
+ "pbp": 1,
+ "profile": "vault-cli",
+ "title": "the vault CLI: writes the vault and a scratch directory, reaches its server",
+ "version": 1,
+ "notes": "P4 as a profile: sgit; the vault under the workspace is writable, the clone read-only.",
+ "blanks": {
+  "workspace": null,
+  "sites": [
+   "send.sgraph.ai"
+  ],
+  "secrets": [],
+  "memory_mb": 512,
+  "pids": 16
+ },
+ "template": {
+  "pbp": 1,
+  "id": "vault-cli",
+  "layer": "invocation",
+  "notes": "P4 as a profile: sgit; the vault under the workspace is writable, the clone read-only.",
+  "files": {
+   "read": [
+    "/usr",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin",
+    "/etc",
+    "$workspace"
+   ],
+   "write": [
+    "$workspace/vault",
+    "/tmp"
+   ],
+   "exec": [
+    "/usr",
+    "/lib",
+    "/lib64",
+    "/bin",
+    "/sbin"
+   ]
+  },
+  "network": {
+   "sites": "$sites"
+  },
+  "secrets": "$secrets",
+  "process": {
+   "no_new_privs": true,
+   "max_memory_mb": "$memory_mb",
+   "max_pids": "$pids"
+  }
+ }
+}

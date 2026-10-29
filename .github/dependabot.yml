@@ -1,0 +1,16 @@
+# Dependabot keeps the pinned commits of the GitHub Actions current (a pin is only as good as
+# the review of its next bump), and watches the two package ecosystems this repository touches.
+# The package itself has no runtime dependencies; the pip entries are the dev tools.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }
+  - package-ecosystem: pip
+    directory: /
+    schedule: { interval: weekly }
+  - package-ecosystem: npm
+    directory: /experiments/browser
+    schedule: { interval: weekly }

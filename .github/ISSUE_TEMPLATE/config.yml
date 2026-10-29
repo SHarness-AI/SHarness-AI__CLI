@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: The design, for questions and hard reviews
+    url: https://sharness.ai/design/index.html
+    about: The brief, the components, the policies, containment and the open decisions. An issue here is welcome; a hard question is worth more than a star.
+  - name: Try it in your browser first
+    url: https://sharness.ai/code/playground/index.html
+    about: pip install sharness-ai in Pyodide, and a shell on a Linux kernel with Landlock, in one tab.

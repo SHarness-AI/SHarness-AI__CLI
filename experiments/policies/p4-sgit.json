@@ -1,0 +1,9 @@
+{
+ "pbp": 1,
+ "id": "p4-sgit",
+ "layer": "component",
+ "notes": "P4, the sgit CLI (sgit.ai, a zero-knowledge encrypted vault with git-like versioning): read the system and the workspace at /work, write the vault checkout at /work/vault and /tmp, run the system, TCP connect to port 443 (the vault's object store), 512 MiB, 16 processes. Keys: sgit keeps them where it is configured to; that directory, and no other, is added to read (and to write for key creation) per installation. The next sgit, launched under this policy, can print its own policy hash from SHARNESS_AI_POLICY_HASH.",
+ "files": {"read": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/work", "/tmp"], "write": ["/work/vault", "/tmp"], "exec": ["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc"]},
+ "network": {"connect_tcp_ports": [443]},
+ "process": {"no_new_privs": true, "max_memory_mb": 512, "max_pids": 16}
+}
