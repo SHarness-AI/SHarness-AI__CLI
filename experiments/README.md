@@ -12,9 +12,9 @@ only. No experiment is a SHarness component.
 
 | # | Experiment | Runs where | Status |
 |---|---|---|---|
-| E01 | `sharness-ai probe`: the grant, what a process here can do before any policy | any OS (Linux for the kernel facts) | runnable |
+| E01 | `sharness-ai probe`: the grant, what a process here can do before any policy | any OS (Linux for the kernel facts; macOS prints each missing fact as n/a, with why) | runnable |
 | E02 | `sharness-ai policy hash`: canonical JSON → `sha256:…`, the one value the person supplies; the same hash in the [browser mockup](https://sharness.ai/explain/mockups/policy-hash.html) | any OS, and the browser | runnable |
-| E03 | `sharness-ai run --policy p.json -- cmd`: one command under a policy (Landlock files and TCP ports, no network; memory and process-count caps by rlimit and cgroup) | Linux 5.13+ (Landlock ABI 1; TCP rules ABI 4; cgroups need root or a delegated subtree) | runnable, caps measured 25 Oct 2026 |
+| E03 | `sharness-ai run --policy p.json -- cmd`: one command under a policy (Landlock files and TCP ports, no network; memory and process-count caps by rlimit and cgroup) | Linux 5.13+ (Landlock ABI 1; TCP rules ABI 4; cgroups need root or a delegated subtree); macOS: refuses in one line, nothing runs | runnable, caps measured 25 Oct 2026; the macOS text checked with a faked platform, not on a real Mac |
 | E04 | `sharness-ai hello`: the memo's acceptance test for one child process: read allowed, writes refused, network refused, memory over the cap refused, wrong hash refused | Linux; a Claude Code session via the [skill](../.claude/skills/sharness-hello/SKILL.md) | runnable, measured 24 and 25 Oct 2026 (6 of 6) |
 | E05 | `sharness-ai session new`: a session CA + one certificate per role (`openssl`, no dependency) + the edge matrix checked both ways over mutual TLS 1.3, as the door kit's test (`tests/unit/door/`) | any OS with `openssl` | runnable, measured 26 Oct 2026 (a loopback mutual-TLS request about 7 to 8 ms end to end) |
 | E06 | the process-tree proof of concept: a mini orchestrator that cannot exec a shell, and a bash server outside its domain | Linux, root, following the [safety rules](https://sharness.ai/design/process-tree/index.html#4-safety-rules-for-testing-inside-a-live-agent-session) | planned |

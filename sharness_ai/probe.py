@@ -80,7 +80,7 @@ def probe() -> dict:
         caps_all = bin(int(cap_bnd, 16)).count("1") >= CAP_ALL_HEX_MIN_BITS
     except ValueError:
         caps_all = None
-    landlock_abi = 0
+    landlock_abi = 0 if linux or sys.platform == "emscripten" else None    # null, not 0, where Landlock cannot exist
     if linux:
         from sharness_ai.landlock import abi
         landlock_abi = abi()
@@ -99,7 +99,7 @@ def probe() -> dict:
         "no_new_privs": int(st["NoNewPrivs"]) if st.get("NoNewPrivs", "").isdigit() else None,
         "seccomp": int(st["Seccomp"]) if st.get("Seccomp", "").isdigit() else None,
         "landlock_abi": landlock_abi,
-        "memfd_secret": _memfd_secret() if linux else False,
+        "memfd_secret": _memfd_secret() if linux else None,
         "namespaces": ns,
         "cgroups": _cgroups() if linux else None,
         "kernel_config": _kernel_config() if linux else None,
@@ -107,6 +107,37 @@ def probe() -> dict:
         "egress_proxy_vars": [v for v in PROXY_VARS if os.environ.get(v)],
         "cwd_writable": os.access(os.getcwd(), os.W_OK),
     }
+
+
+def os_name(platform: str) -> str:
+    return {"darwin": "macOS", "win32": "Windows", "cygwin": "Windows (Cygwin)"}.get(platform, platform)
+
+
+def kernel_rows(p: dict) -> dict:
+    """The Linux-only facts as words: on another OS each says it does not apply and why (issue #6)."""
+    def known(v, absent="unknown"):
+        return absent if v is None else v
+    if not p["os"].startswith("linux") and p["os"] != "emscripten":
+        name = os_name(p["os"])
+        return {"no_new_privs": f"n/a ({name}: no prctl)", "seccomp": f"n/a ({name}: no seccomp)",
+                "landlock": f"n/a ({name}: no Landlock)", "memfd_secret": f"n/a ({name})",
+                "cgroups": f"n/a ({name}: no cgroups)", "namespaces": f"n/a ({name}: no Linux namespaces)",
+                "config": f"n/a ({name}: not a Linux kernel)"}
+    cfg = p.get("kernel_config")
+    return {"no_new_privs": known(p["no_new_privs"]), "seccomp": known(p["seccomp"]),
+            "landlock": f"ABI {p['landlock_abi'] or 'none'}", "memfd_secret": "yes" if p["memfd_secret"] else "no",
+            "cgroups": known(p["cgroups"], "none"), "namespaces": ", ".join(p["namespaces"]) or "n/a",
+            "config": ("  ".join(f"{k.replace('CONFIG_', '')}={v}" for k, v in cfg.items())
+                       if cfg else "/proc/config.gz not readable")}
+
+
+def other_os_reading(p: dict) -> str:
+    """The reading line on an OS that is neither Linux nor WebAssembly, or ''."""
+    if p["os"].startswith("linux") or p["os"] == "emscripten":
+        return ""
+    return (f"{os_name(p['os'])}: the grant is everything this user may do, and nothing here can narrow it "
+            "(Landlock, seccomp and cgroups are Linux). run and hello refuse rather than pretend; policy new, "
+            "hash, check and translate work here")
 
 
 def caps_label(p: dict) -> str:
@@ -127,22 +158,18 @@ def render(p: dict) -> str:
     def yn(v):
         return "yes" if v else "no"
 
-    def known(v, absent="unknown"):
-        return absent if v is None else v
     who = f"uid {p['uid']}" + (" (root)" if p["uid"] == 0 else "")
     caps = caps_label(p)
+    k = kernel_rows(p)
     tools = "  ".join(f"{t} {'✔' if path else '✗'}" for t, path in p["tools"].items())
-    cfg = p.get("kernel_config")
-    cfg_s = ("  ".join(f"{k.replace('CONFIG_', '')}={v}" for k, v in cfg.items())
-             if cfg else "/proc/config.gz not readable")
     proxies = ", ".join(p["egress_proxy_vars"]) or "none"
     lines = [
         "sharness-ai probe   the grant: what a process here can do before any policy",
-        f"identity    {who} · capabilities {caps} · NoNewPrivs {known(p['no_new_privs'])} · Seccomp {known(p['seccomp'])}",
-        f"kernel      {p['os']} {p['kernel']} · Landlock ABI {p['landlock_abi'] or 'none'} · "
-        f"memfd_secret {yn(p['memfd_secret'])} · cgroups {known(p['cgroups'], 'none')}",
-        f"namespaces  {', '.join(p['namespaces']) or 'n/a'}",
-        f"config      {cfg_s}",
+        f"identity    {who} · capabilities {caps} · NoNewPrivs {k['no_new_privs']} · Seccomp {k['seccomp']}",
+        f"kernel      {p['os']} {p['kernel']} · Landlock {k['landlock']} · "
+        f"memfd_secret {k['memfd_secret']} · cgroups {k['cgroups']}",
+        f"namespaces  {k['namespaces']}",
+        f"config      {k['config']}",
         f"tools       {tools}",
         f"egress      proxy variables set: {proxies} (names only; values are never printed)",
         f"workspace   {os.getcwd()} writable: {yn(p['cwd_writable'])} · python {p['python']}",
@@ -150,6 +177,8 @@ def render(p: dict) -> str:
     if p["os"] == "emscripten":
         lines.append("reading     no kernel here: this is Python compiled to WebAssembly (Pyodide). A policy can be "
                      "hashed, checked and translated here; it can be enforced only by a Linux kernel.")
+    elif other_os_reading(p):
+        lines.append(f"reading     {other_os_reading(p)}.")
     elif p["os"].startswith("linux") and not p["landlock_abi"]:
         lines.append("reading     Landlock is not available on this kernel: `run` would refuse rather than run "
                      "a command without its policy.")

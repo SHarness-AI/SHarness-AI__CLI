@@ -56,6 +56,10 @@ def unavailable() -> str:
     if sys.platform == "emscripten" or not hasattr(os, "fork"):
         return (f"this runtime ({sys.platform}) has no kernel and cannot start processes, so there is "
                 f"no child to confine; policy hash, check and translate work here, run and hello need Linux")
+    if not sys.platform.startswith("linux"):
+        from sharness_ai.probe import os_name
+        return (f"this is {os_name(sys.platform)}: no Landlock, no seccomp, no cgroups, so nothing here can narrow what "
+                f"a process may do; policy hash, check and translate work here, run and hello need Linux 5.13 or later")
     return ""
 
 

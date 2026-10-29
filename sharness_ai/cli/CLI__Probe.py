@@ -2,7 +2,7 @@
 import json
 import os
 
-from sharness_ai.probe import caps_label, probe
+from sharness_ai.probe import caps_label, kernel_rows, other_os_reading, probe
 
 
 class CLI__Probe:
@@ -13,7 +13,7 @@ class CLI__Probe:
     def where(p: dict, sep: str = " · ") -> str:
         """One line: where you are. Shared with the guide."""
         cg = p.get("cgroups")
-        return sep.join([f"{p['os']} {p['kernel']}", f"Landlock ABI {p['landlock_abi'] or 'none'}",
+        return sep.join([f"{p['os']} {p['kernel']}", f"Landlock {kernel_rows(p)['landlock']}",
                          f"uid {p['uid']}", f"cgroups {cg}" if cg else "no cgroups"])
 
     @staticmethod
@@ -25,8 +25,8 @@ class CLI__Probe:
             return ["no kernel here: this is Python compiled to WebAssembly (Pyodide). A policy can be "
                     "hashed, checked, written and translated here; it can be enforced only by a Linux kernel. "
                     "The Linux tab of the playground has one: https://sharness.ai/code/playground/index.html"]
-        if not p["os"].startswith("linux"):
-            return [f"{p['os']}: Landlock is a Linux kernel feature; run and hello refuse here rather than pretend"]
+        if other_os_reading(p):
+            return [other_os_reading(p)]
         if abi < 1:
             out.append("Landlock is not available on this kernel: run refuses rather than run a command "
                        "without its policy. Linux 5.13 or later, with CONFIG_SECURITY_LANDLOCK, has it")
@@ -60,21 +60,17 @@ class CLI__Probe:
         def yn(v):
             return "yes" if v else "no"
 
-        def known(v, absent="unknown"):
-            return absent if v is None else v
         who = f"uid {p['uid']}" + (" (root)" if p["uid"] == 0 else "")
         caps = caps_label(p)
-        tools = "  ".join(f"{k} {t.mark('ok') if v else t.mark('no')}" for k, v in p["tools"].items())
-        cfg = p.get("kernel_config")
-        cfg_s = ("  ".join(f"{k.replace('CONFIG_', '')}={v}" for k, v in cfg.items())
-                 if cfg else "/proc/config.gz not readable")
+        k = kernel_rows(p)
+        tools = "  ".join(f"{name} {t.mark('ok') if v else t.mark('no')}" for name, v in p["tools"].items())
         lines = d.head("probe", "the grant: what a process here can do before any policy")
-        lines += d.kv("identity", sep.join([who, f"capabilities {caps}", f"NoNewPrivs {known(p['no_new_privs'])}",
-                                            f"Seccomp {known(p['seccomp'])}"]))
-        lines += d.kv("kernel", sep.join([f"{p['os']} {p['kernel']}", f"Landlock ABI {p['landlock_abi'] or 'none'}",
-                                          f"memfd_secret {yn(p['memfd_secret'])}", f"cgroups {known(p['cgroups'], 'none')}"]))
-        lines += d.kv("namespaces", ", ".join(p["namespaces"]) or "n/a")
-        lines += d.kv("config", cfg_s)
+        lines += d.kv("identity", sep.join([who, f"capabilities {caps}", f"NoNewPrivs {k['no_new_privs']}",
+                                            f"Seccomp {k['seccomp']}"]))
+        lines += d.kv("kernel", sep.join([f"{p['os']} {p['kernel']}", f"Landlock {k['landlock']}",
+                                          f"memfd_secret {k['memfd_secret']}", f"cgroups {k['cgroups']}"]))
+        lines += d.kv("namespaces", k["namespaces"])
+        lines += d.kv("config", k["config"])
         lines += d.kv("tools", tools)
         lines += d.kv("egress", f"proxy variables set: {', '.join(p['egress_proxy_vars']) or 'none'} "
                                 "(names only; values are never printed)")
