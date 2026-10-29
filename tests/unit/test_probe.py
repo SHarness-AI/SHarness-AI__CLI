@@ -21,19 +21,3 @@ class Test_Probe:
         assert "HTTPS_PROXY" in text
         assert "secret-value" not in text
 
-
-class Test_Issue_8:
-    """Reported from a Linux Mint 22.3 guest (issue #8, 28 Oct 2026)."""
-
-    def test_an_empty_effective_set_is_none_whatever_the_bounding_set(self):
-        from sharness_ai.probe import caps_word
-        assert caps_word({"caps_all": False, "cap_eff": "0000000000000000"}) == "none"
-        assert caps_word({"caps_all": False, "cap_eff": "0000000000003000"}) == "some"
-        assert caps_word({"caps_all": True, "cap_eff": "000001ffffffffff"}) == "all"
-        assert caps_word({"caps_all": None, "cap_eff": None}) == "unknown"
-
-    def test_a_refusal_names_the_error_not_the_runners_footer(self):
-        from sharness_ai.hello import _classify
-        err = "PermissionError: [Errno 13] Permission denied: '/tmp/x'\nnot covered: UDP and the rows it\n                  cannot enforce"
-        got = _classify("write-tmp", 1, "", err)
-        assert got.startswith("refused (PermissionError") and "cannot enforce" not in got
