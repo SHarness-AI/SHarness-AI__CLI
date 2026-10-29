@@ -1,6 +1,6 @@
 [tool.poetry]
 name        = "sharness-ai"
-version     = "v0.1.0"
+version     = "v0.2.0"
 description = "SHarness: runs agents and their tools as small, single-purpose, kernel-locked processes talking over mutually authenticated connections. Experiments stage: probe, policy hash/check/translate, run, hello."
 readme      = "README.md"
 license     = "Apache-2.0"
