@@ -279,3 +279,36 @@ class Test_Repository_Hygiene:
     def test_static_server_refuses_path_traversal(self):
         js = (ROOT / "experiments/browser/boot_browser.mjs").read_text()
         assert "startsWith(WWW" in js and "normalize(" in js
+
+
+class Test_Door_Review_3:
+    """The re-test of 28 Oct 2026 (board T25): what still reproduced on dev at 8210807."""
+
+    def test_a_secret_split_across_two_appends_is_refused(self):
+        from sharness_ai.door import Rows
+        rows = Rows([])
+        head, rest = b"notes\n-----BEGIN PRIVATE ", b"KEY-----\n"        # built in two parts: the tree holds no key shape
+        assert rows.verdict("append", "/n.txt", head).allowed
+        v = rows.verdict("append", "/n.txt", rest, before=head)
+        assert not v.allowed and "refuse_secrets" in v.row
+        assert rows.verdict("append", "/n.txt", b"more text\n", before=head + b"x" * 5000).allowed
+        assert rows.verdict("write", "/n.txt", rest, before=head).allowed       # a write replaces the file: no before
+
+    def test_the_door_scans_the_end_of_the_file_on_append(self, tmp_path):
+        import shutil
+        if not shutil.which("openssl"):
+            pytest.skip("needs openssl")
+        from sharness_ai.door import Client, Session
+        from sharness_ai.fs import FS
+        from sharness_ai.fs.disk import Disk
+        session = Session.new(str(tmp_path / "s"), ("app", "fs"))
+        door = FS(session, Disk(str(tmp_path / "root")))
+        port = door.serve(background=True)
+        try:
+            c = Client(session, "app", "fs", port)
+            assert c.request("POST", "/v0/files/notes.txt/append", b"-----BEGIN PRIVATE ")[0] == 201
+            status, data = c.request("POST", "/v0/files/notes.txt/append", b"KEY-----")
+            assert status == 403 and "refuse_secrets" in data["row"]
+            assert (tmp_path / "root" / "notes.txt").read_bytes() == b"-----BEGIN PRIVATE "
+        finally:
+            door.stop()

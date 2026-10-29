@@ -21,7 +21,7 @@ class CLI__Level:
     def _report_lines(self, chain: Chain) -> list:
         d, t = self.main.draw, self.main.term
         r = chain.report()
-        lines = d.kv("held", f"{t.mark('ok')} {r['held']} rows by the kernel: files, ports, caps; nothing else is reachable", style="ok")
+        lines = d.kv("held", f"{t.mark('ok')} {r['held']} rows by the kernel: files, ports, caps", style="ok")
         for i, u in enumerate(r["unheld"]):
             lines += d.kv("not held" if i == 0 else "", f"{t.glyph('ask') if not t.unicode else '⚠'} {u}", style="warn" if i == 0 else None)
         for i, u in enumerate(r["passthrough"]):

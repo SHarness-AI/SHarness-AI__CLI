@@ -139,6 +139,7 @@ class Test_CLI_levels:
         assert cli().run(["contain", "--workspace", ".", "--sites", "github.com", "--save", "s.json", "--dry-run", "--", "my-agent"]) == 0
         out = capsys.readouterr().out
         assert "you said        contain my-agent to" in out and "the name        sha256:" in out
+        assert "nothing else is reachable" not in out               # T25 item 6: never above an unheld host
         assert "github.com: held as port 443" in out and "saved           s.json" in out
         doc = load("s.json")
         assert doc["level"] == 5 and doc["contain"]["agent"] == "my-agent"

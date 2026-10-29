@@ -1,11 +1,13 @@
 """The fs door's logic, the same over any Store: normalise the path, keep it under the root,
 ask the rows, then send to the target. Content is never interpreted beyond what it parses as."""
+import base64
 import json
 import os
 import posixpath
 from urllib.parse import unquote
 
 from sharness_ai.door import Contract, Door, Rows, Verdict
+from sharness_ai.door.Rows import SPLIT_WINDOW
 from sharness_ai.fs.Store import OutsideRoot, Store
 
 HERE = os.path.dirname(__file__)
@@ -54,7 +56,13 @@ class FS(Door):
         rel = self.normalise(raw)
         if rel is None:
             return Verdict.refuse(f"{raw!r} is outside the root or not a path", "within_root (every path)")
-        v = self.rows.verdict(op, "/" + rel, body)
+        try:
+            before = self.store.tail(rel, SPLIT_WINDOW) if op == "append" and self.store.exists(rel) else b""
+        except OutsideRoot as e:
+            return Verdict.refuse(f"symlink escape: {e}", "within_root (every path)")
+        except OSError as e:
+            return Verdict.refuse(f"the target refused: {e.strerror or e}", status=502)
+        v = self.rows.verdict(op, "/" + rel, body, before)
         if not v.allowed:
             return v
         try:
@@ -62,7 +70,10 @@ class FS(Door):
                 if not self.store.exists(rel):
                     return Verdict.refuse("no such file", status=404)
                 data = self.store.read(rel)
-                return Verdict.ok(path=rel, size=len(data), content=data.decode("utf-8", "replace"))
+                try:
+                    return Verdict.ok(path=rel, size=len(data), content=data.decode("utf-8"))
+                except UnicodeDecodeError:                   # bytes that are not text travel as base64, never lossy
+                    return Verdict.ok(path=rel, size=len(data), content_b64=base64.b64encode(data).decode("ascii"))
             if op == "write":
                 self.store.write(rel, body)
                 return Verdict.ok(201, path=rel, size=len(body))

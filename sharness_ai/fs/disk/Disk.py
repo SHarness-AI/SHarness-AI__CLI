@@ -108,6 +108,13 @@ class Disk(Store):
         finally:
             os.close(fd)
 
+    def tail(self, rel: str, n: int) -> bytes:
+        fd = self._open_file(rel, os.O_RDONLY)
+        try:
+            return os.pread(fd, n, max(0, os.fstat(fd).st_size - n))
+        finally:
+            os.close(fd)
+
     def write(self, rel: str, data: bytes) -> None:
         d, name = self._split(rel)
         dfd = self._dir(d, create=True)

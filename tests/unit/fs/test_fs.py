@@ -231,3 +231,20 @@ class Test_Review_2_fs:
             assert status == 201
         finally:
             door.stop()
+
+
+class Test_Review_3_fs:
+    def test_a_binary_file_reads_back_byte_for_byte(self, session, tmp_path):
+        import base64
+        door = FS(session, Disk(str(tmp_path / "root")))
+        port = door.serve(background=True)
+        try:
+            c = Client(session, "app", "fs", port)
+            blob = bytes(range(256))
+            assert c.request("PUT", "/v0/files/b.bin", blob)[0] == 201
+            status, data = c.request("GET", "/v0/files/b.bin")
+            assert status == 200 and "content" not in data and base64.b64decode(data["content_b64"]) == blob
+            c.request("PUT", "/v0/files/t.txt", "héllo".encode())
+            assert c.request("GET", "/v0/files/t.txt")[1]["content"] == "héllo"
+        finally:
+            door.stop()

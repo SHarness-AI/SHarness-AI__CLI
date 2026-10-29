@@ -93,6 +93,8 @@ class CLI__Fs:
         if isinstance(data, dict):
             if "content" in data:
                 t.write(data["content"].rstrip("\n"))
+            if "content_b64" in data:
+                t.write(*d.kv("content", f"{data.get('size', '?')} bytes, not UTF-8: base64 in --json", style="dim"))
             if path == "/v0/hello":
                 t.write(*d.kv("targets", ", ".join(f"{k} ({v})" for k, v in data.get("targets", {}).items())))
                 t.write(*d.kv("hashes", f"accepts {d.hash_short(data.get('accepts', ''))}  emits {d.hash_short(data.get('emits', ''))}  policy {d.hash_short(data.get('policy', ''))}", style="dim"))
