@@ -59,7 +59,18 @@ def unavailable() -> str:
     return ""
 
 
-def network_plan(net, abi: int, netns: str):
+def loopback_only() -> bool:
+    """True when this process's network namespace has no interface but `lo` (the shell's, since
+    security review 2): then UDP has no route out either, and nothing resolves."""
+    try:
+        with open("/proc/self/net/dev") as f:
+            names = [line.split(":", 1)[0].strip() for line in f.readlines()[2:] if ":" in line]
+    except OSError:
+        return False
+    return names == ["lo"]
+
+
+def network_plan(net, abi: int, netns: str, loopback: bool = False):
     """What the network row means here. Returns (refusals, gaps): refusals are rows that cannot
     be enforced at all; gaps are what the enforcement that is possible still leaves open."""
     refusals, gaps = [], []
@@ -76,7 +87,9 @@ def network_plan(net, abi: int, netns: str):
             refusals.append(f"network.connect_tcp_ports {ports}: Landlock ABI {abi} has no TCP rules, "
                             f"so every port would be open")
         else:
-            gaps.append("UDP is not covered by Landlock port rules; DNS still resolves")
+            gaps.append("UDP is not covered by Landlock port rules; here the network namespace has loopback "
+                        "only, so UDP has no route out" if loopback else
+                        "UDP is not covered by Landlock port rules; DNS still resolves")
     return refusals, gaps
 
 
@@ -148,7 +161,7 @@ def apply(policy: dict, best_effort: bool = False) -> dict:
     net = policy.get("network")
     if net == "none":
         applied["netns"] = _unshare_net()
-    refusals, gaps = network_plan(net, abi, applied["netns"])
+    refusals, gaps = network_plan(net, abi, applied["netns"], loopback_only())
     proc = policy.get("process", {})
     mem, pids = proc.get("max_memory_mb"), proc.get("max_pids")
     if mem or pids is not None:

@@ -99,6 +99,22 @@ class Test_Enforcement_Plan:
         refusals, gaps = network_plan("none", abi=7, netns="netns")
         assert not refusals and any("Unix" in g for g in gaps)
 
+    def test_udp_gap_says_what_a_loopback_only_namespace_means(self):
+        ports = {"connect_tcp_ports": [443]}
+        assert any("DNS still resolves" in g for g in network_plan(ports, abi=4, netns="")[1])
+        gaps = network_plan(ports, abi=4, netns="", loopback=True)[1]
+        assert not any("DNS still resolves" in g for g in gaps) and any("loopback only" in g for g in gaps)
+
+    def test_loopback_only_reads_this_process_namespace(self):
+        import shutil
+        if not shutil.which("unshare"):
+            pytest.skip("needs unshare")
+        code = "from sharness_ai.run import loopback_only; print(loopback_only())"
+        r = subprocess.run(["unshare", "-rn", sys.executable, "-c", code], capture_output=True, text=True, cwd=ROOT)
+        if r.returncode:
+            pytest.skip("no network namespace here: " + r.stderr.strip()[:80])
+        assert r.stdout.strip() == "True"
+
     def test_ports_without_tcp_rules_are_refused(self):
         refusals, _ = network_plan({"connect_tcp_ports": [443]}, abi=3, netns="")
         assert refusals and "443" in refusals[0]
