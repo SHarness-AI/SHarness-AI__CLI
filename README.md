@@ -22,7 +22,7 @@ in the tab, where every `sharness-ai run` is enforced. Or just [watch the kernel
 **On Linux (5.13 or later):**
 
 ```bash
-pip install git+https://github.com/SHarness-AI/SHarness-AI__CLI@dev
+pip install sharness-ai                             # or the latest: pip install git+https://github.com/SHarness-AI/SHarness-AI__CLI@dev
 sharness-ai                                         # the guide: where you are, the ladder, what to do next
 sharness-ai hello                                   # the acceptance test: six probes, six held
 sharness-ai policy new my-tool.json                 # five questions write a policy; its hash is its name
@@ -43,11 +43,14 @@ data. The design, written before the code: [The CLI is the front door](https://s
 every machine becomes a row on [sharness.ai/evidence/machines](https://sharness.ai/evidence/machines/index.html),
 and a refusal that did not happen is the most useful thing you can send.
 
-> **Status: experiments.** No SHarness component (launcher, kms, net, fs, bash, llm) is built. This
-> package carries the experiments: `probe`, `policy hash|check|translate`, `run`, `hello`, and a
-> browser bench where the same guest kernel runs in Node, in a tab and through chroot. The release
-> on PyPI (v0.1.0) is the skeleton; the commands are on `dev`, the default branch, and ship with the
-> next release from `main`. The design is published for review at [sharness.ai](https://sharness.ai).
+> **Status: experiments, with three MVPs.** This package carries the experiments (`probe`,
+> `policy hash|check|translate`, `run`, `hello`, and a browser bench where the same guest kernel runs in
+> Node, in a tab and through chroot) and three MVPs: the levels in the terminal (`contain`, `profile`,
+> `explain`); the first door, `sharness.fs`, a **Setting** for the app until the launcher gives it its own
+> uid; and the network door with a shell under the harness (`sharness-ai net serve`, `sharness-ai shell`),
+> a **Boundary** for that shell where run as root, a Setting otherwise. No other component (kms, bash, llm,
+> the launcher's manifest) is built, and nothing yet binds the agent itself. What exists and what does not:
+> [sharness.ai/evidence/status](https://sharness.ai/evidence/status/index.html).
 
 ## What is enforced, by what, and the caveat
 
@@ -111,7 +114,7 @@ experiments and storyboards is [sharness.ai/code/experiments](https://sharness.a
 | `experiments/browser/`: `npm run node`, `npm run browser`, `sudo npm run native` | E09 | the same `hello` and `run` under a second kernel: Alpine x86 with Landlock booted by v86 in Node and in a browser tab, and the same binaries through chroot on the host kernel |
 | `sharness-ai hello` | E04 | the memo's acceptance test for one child process: read allowed, writes refused, network refused, a 400 MiB allocation under a 128 MiB cap refused, wrong hash refused. A refusal counts only when it came from the policy; an ambiguous one is checked against a control run without the policy and reported *inconclusive* if the environment refused it too. Exit 0 when nothing failed |
 | `sharness-ai policy new [FILE]`, `policy show FILE`, `policy edit FILE` | | the wizard: five questions (read, write, exec, ports, memory), every default shown before it is accepted, the policy drawn as one process with its edges, the file written, its hash and the `run` command printed; `show` draws any policy; `edit` changes one edge and shows the name change. Flags (`--write /work/out --ports 443 -y`) answer without asking, for scripts |
-| `sharness-ai components [NAME]`, `sharness-ai net` (and `bash`, `kms`, `fs`, `llm`, `launcher`) | | the operating system a process sees, drawn, with honest status: all seven designed, none built. A component's verb prints its proposed REST surface and exits 69 (unavailable) until it is runnable |
+| `sharness-ai components [NAME]`, `sharness-ai net` (and `bash`, `kms`, `fs`, `llm`, `launcher`) | | the operating system a process sees, drawn, with honest status: all seven designed; `fs` and `net` runnable as MVPs, the rest not built. A component's verb that is not runnable prints its proposed REST surface and exits 69 (unavailable) |
 | `sharness-ai guide [--once]` | | the no-arguments screen, for a pipe or a script |
 | `sharness-ai contain --workspace . --sites github.com -- CMD` | level 5 | one sentence (a workspace, sites, secrets, a profile) compiled deterministically down to the v0 policy the kernel holds and run under it; prints what it became at each level, one hash, what is held, what is not held yet (host names, until `sharness.net`), what is never covered. `--save FILE` keeps the sentence; `--expect-hash` refuses any other |
 | `sharness-ai profile list\|show NAME` | level 4 | the roles a vendor ships with blanks a person fills: the example policies P0 to P5 as templates (`coding-agent`, `tool-server`, `hello-world`, …) |
