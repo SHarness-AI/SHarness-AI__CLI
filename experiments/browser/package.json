@@ -11,6 +11,6 @@
     "native": "sh chroot_native.sh"
   },
   "dependencies": {
-    "v86": "0.5.472"
+    "v86": "0.5.473"
   }
 }
